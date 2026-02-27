@@ -1,0 +1,8 @@
+{
+  "name": "WebwaveTicTacToe",
+  "displayName": "Tic Tac Toe",
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-9812515008053738~9047343557",
+    "delay_app_measurement_init": true
+  }
+}
