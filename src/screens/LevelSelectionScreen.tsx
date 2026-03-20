@@ -1,5 +1,6 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
+  BackHandler,
   Modal,
   Platform,
   Pressable,
@@ -89,6 +90,19 @@ const LevelSelectionScreen = ({adsReady, onStartGame}: LevelSelectionScreenProps
 
   const selectedIndex = useMemo(() => LEVELS.indexOf(selectedDifficulty), [selectedDifficulty]);
 
+  useEffect(() => {
+    const backSubscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!showDifficultyModal) {
+        return false;
+      }
+
+      setShowDifficultyModal(false);
+      return true;
+    });
+
+    return () => backSubscription.remove();
+  }, [showDifficultyModal]);
+
   const handlePvAI = () => setShowDifficultyModal(true);
   const handlePvp = () => onStartGame('PVP');
   const confirmPvAI = () => {
@@ -169,13 +183,6 @@ const LevelSelectionScreen = ({adsReady, onStartGame}: LevelSelectionScreenProps
                 <Icon name="chevron-forward" size={22} color={colors.pinkPrimary} />
               </Pressable>
 
-              <View style={[styles.modeButton, styles.modeButtonDisabled]}>
-                <View style={[styles.modeButtonIconOrb, styles.modeButtonIconOrbDisabled]}>
-                  <Icon name="lock-closed-outline" size={18} color="rgba(220, 231, 255, 0.58)" />
-                </View>
-                <Text style={[styles.modeButtonText, styles.modeButtonTextDisabled, {fontSize: buttonLabelSize - 1}]}>CAMPAIGN (SOON)</Text>
-                <Icon name="chevron-forward" size={22} color="rgba(220, 231, 255, 0.38)" />
-              </View>
             </View>
 
             {adsReady ? <AdBanner compact /> : null}

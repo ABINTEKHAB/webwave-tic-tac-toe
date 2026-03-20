@@ -1,6 +1,8 @@
 import analytics from '@react-native-firebase/analytics';
 import crashlytics from '@react-native-firebase/crashlytics';
 
+let analyticsCollectionEnabled = false;
+
 const normalizeError = (error: unknown): Error => {
   if (error instanceof Error) {
     return error;
@@ -21,14 +23,31 @@ export const initializeTelemetry = async () => {
     // Do not block app startup for telemetry failures.
   }
 
+  analyticsCollectionEnabled = false;
   try {
-    await analytics().setAnalyticsCollectionEnabled(true);
+    await analytics().setAnalyticsCollectionEnabled(false);
   } catch {
     // Do not block app startup for telemetry failures.
   }
 };
 
+export const setAnalyticsEnabled = async (enabled: boolean) => {
+  analyticsCollectionEnabled = enabled;
+
+  try {
+    await analytics().setAnalyticsCollectionEnabled(enabled);
+  } catch {
+    if (!enabled) {
+      analyticsCollectionEnabled = false;
+    }
+  }
+};
+
 export const logScreenView = async (screenName: string) => {
+  if (!analyticsCollectionEnabled) {
+    return;
+  }
+
   try {
     await analytics().logScreenView({
       screen_name: screenName,
@@ -43,6 +62,10 @@ export const logAnalyticsEvent = async (
   eventName: string,
   params: Record<string, string | number | boolean | null | undefined> = {},
 ) => {
+  if (!analyticsCollectionEnabled) {
+    return;
+  }
+
   try {
     await analytics().logEvent(
       eventName as Parameters<ReturnType<typeof analytics>['logEvent']>[0],

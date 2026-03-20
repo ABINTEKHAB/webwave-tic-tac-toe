@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    BackHandler,
     Image,
     Linking,
     Modal,
@@ -36,6 +37,7 @@ interface GameScreenProps {
     difficulty: Difficulty;
     adsReady: boolean;
     onGoHome: () => void;
+    onRefreshAdsState: () => Promise<void>;
 }
 
 type Mark = Exclude<Player, null>;
@@ -151,7 +153,7 @@ const createSound = (soundAsset: number): Sound | null => {
     }
 };
 
-const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome }: GameScreenProps) => {
+const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsState }: GameScreenProps) => {
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const adVisible = adsReady && shouldRenderAds;
@@ -551,6 +553,25 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome }: GameScreenProp
         playSound('tap');
     };
 
+    useEffect(() => {
+        const backSubscription = BackHandler.addEventListener('hardwareBackPress', () => {
+            if (consentFeedback.visible) {
+                closeConsentFeedbackModal();
+                return true;
+            }
+
+            if (settingsModalVisible) {
+                closeSettingsModal();
+                return true;
+            }
+
+            handleHome();
+            return true;
+        });
+
+        return () => backSubscription.remove();
+    }, [consentFeedback.visible, settingsModalVisible]);
+
     const handleOpenPrivacyPolicy = async () => {
         playSound('tap');
         triggerVibration(8, true);
@@ -578,6 +599,7 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome }: GameScreenProp
 
             if (consentInfo.privacyOptionsRequirementStatus === 'REQUIRED') {
                 await AdsConsent.showPrivacyOptionsForm();
+                await onRefreshAdsState();
                 return;
             }
 
@@ -586,6 +608,7 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome }: GameScreenProp
                 (consentInfo.status === 'UNKNOWN' || consentInfo.status === 'REQUIRED')
             ) {
                 await AdsConsent.showForm();
+                await onRefreshAdsState();
                 return;
             }
 
