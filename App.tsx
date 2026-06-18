@@ -1,9 +1,11 @@
-import React, {useEffect, useRef, useState} from 'react';
-import mobileAds, {AdsConsent, MaxAdContentRating} from 'react-native-google-mobile-ads';
+import React, { useEffect, useRef, useState } from 'react';
+import mobileAds, { AdsConsent, MaxAdContentRating } from 'react-native-google-mobile-ads';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import LevelSelectionScreen from './src/screens/LevelSelectionScreen';
 import GameScreen from './src/screens/GameScreen';
+import SplashPortal from './src/components/SplashPortal';
 import { Difficulty, GameMode } from './src/types';
+import { ThemeProvider } from './src/theme/ThemeContext';
 import {
   initializeTelemetry,
   logAnalyticsEvent,
@@ -16,6 +18,7 @@ type Screen = 'LEVEL_SELECT' | 'GAME';
 
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('LEVEL_SELECT');
+  const [splashVisible, setSplashVisible] = useState(true);
   const [gameMode, setGameMode] = useState<GameMode>('PVAI');
   const [difficulty, setDifficulty] = useState<Difficulty>('Medium');
   const [adsReady, setAdsReady] = useState(false);
@@ -118,19 +121,23 @@ const App = () => {
   };
 
   return (
-    <SafeAreaProvider>
-      {currentScreen === 'GAME' ? (
-        <GameScreen
-          gameMode={gameMode}
-          difficulty={difficulty}
-          adsReady={adsReady}
-          onGoHome={handleGoHome}
-          onRefreshAdsState={refreshAdsState}
-        />
-      ) : (
-        <LevelSelectionScreen adsReady={adsReady} onStartGame={handleStartGame} />
-      )}
-    </SafeAreaProvider>
+    <ThemeProvider>
+      <SafeAreaProvider>
+        {splashVisible ? (
+          <SplashPortal onFinish={() => setSplashVisible(false)} />
+        ) : currentScreen === 'GAME' ? (
+          <GameScreen
+            gameMode={gameMode}
+            difficulty={difficulty}
+            adsReady={adsReady}
+            onGoHome={handleGoHome}
+            onRefreshAdsState={refreshAdsState}
+          />
+        ) : (
+          <LevelSelectionScreen adsReady={adsReady} onStartGame={handleStartGame} />
+        )}
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 };
 

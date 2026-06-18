@@ -1,5 +1,14 @@
-import analytics from '@react-native-firebase/analytics';
-import crashlytics from '@react-native-firebase/crashlytics';
+import {
+  getAnalytics,
+  logEvent,
+  setAnalyticsCollectionEnabled,
+} from '@react-native-firebase/analytics';
+import {
+  getCrashlytics,
+  log as logCrashlytics,
+  recordError,
+  setCrashlyticsCollectionEnabled,
+} from '@react-native-firebase/crashlytics';
 
 let analyticsCollectionEnabled = false;
 
@@ -18,14 +27,14 @@ const normalizeError = (error: unknown): Error => {
 export const initializeTelemetry = async () => {
   try {
     // Keep debug sessions clean; enable crash reports for release users.
-    await crashlytics().setCrashlyticsCollectionEnabled(!__DEV__);
+    await setCrashlyticsCollectionEnabled(getCrashlytics(), !__DEV__);
   } catch {
     // Do not block app startup for telemetry failures.
   }
 
   analyticsCollectionEnabled = false;
   try {
-    await analytics().setAnalyticsCollectionEnabled(false);
+    await setAnalyticsCollectionEnabled(getAnalytics(), false);
   } catch {
     // Do not block app startup for telemetry failures.
   }
@@ -35,7 +44,7 @@ export const setAnalyticsEnabled = async (enabled: boolean) => {
   analyticsCollectionEnabled = enabled;
 
   try {
-    await analytics().setAnalyticsCollectionEnabled(enabled);
+    await setAnalyticsCollectionEnabled(getAnalytics(), enabled);
   } catch {
     if (!enabled) {
       analyticsCollectionEnabled = false;
@@ -49,7 +58,7 @@ export const logScreenView = async (screenName: string) => {
   }
 
   try {
-    await analytics().logScreenView({
+    await logEvent(getAnalytics(), 'screen_view', {
       screen_name: screenName,
       screen_class: screenName,
     });
@@ -67,10 +76,7 @@ export const logAnalyticsEvent = async (
   }
 
   try {
-    await analytics().logEvent(
-      eventName as Parameters<ReturnType<typeof analytics>['logEvent']>[0],
-      params,
-    );
+    await logEvent(getAnalytics(), eventName, params);
   } catch {
     // Ignore telemetry-only failures.
   }
@@ -78,17 +84,19 @@ export const logAnalyticsEvent = async (
 
 export const recordCrashlyticsError = (error: unknown, context?: string) => {
   try {
+    const crashlyticsInstance = getCrashlytics();
     if (context) {
-      crashlytics().log(context);
+      logCrashlytics(crashlyticsInstance, context);
     }
-    crashlytics().recordError(normalizeError(error));
+    recordError(crashlyticsInstance, normalizeError(error));
   } catch {
     // Ignore telemetry-only failures.
   }
 };
 
 export const triggerCrashlyticsTestCrash = async () => {
-  await crashlytics().setCrashlyticsCollectionEnabled(true);
-  crashlytics().log('manual_crashlytics_test_triggered');
-  crashlytics().crash();
+  const crashlyticsInstance = getCrashlytics();
+  await setCrashlyticsCollectionEnabled(crashlyticsInstance, true);
+  logCrashlytics(crashlyticsInstance, 'manual_crashlytics_test_triggered');
+  crashlyticsInstance.crash();
 };

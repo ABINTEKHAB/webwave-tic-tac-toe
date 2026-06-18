@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   BackHandler,
   Modal,
@@ -12,11 +12,13 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Icon from '@react-native-vector-icons/ionicons';
-import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AdBanner from '../components/AdBanner';
-import {Difficulty, GameMode} from '../types';
-import {getContentWidth, scaleSize} from '../theme/responsive';
-import {colors, radii, shadows, spacing, typography} from '../theme/tokens';
+import { Difficulty, GameMode } from '../types';
+import { getContentWidth, scaleSize } from '../theme/responsive';
+import { radii, spacing, typography } from '../theme/tokens';
+import { useTheme } from '../theme/ThemeContext';
+import { CareerStats, getCareerStats, resetCareerStats } from '../services/stats';
 
 interface LevelSelectionScreenProps {
   adsReady: boolean;
@@ -31,10 +33,13 @@ const PREVIEW_PATTERN: PreviewSymbol[] = ['O', 'X', 'O', 'X', 'O', 'X', 'O', 'X'
 interface PreviewMarkProps {
   symbol: PreviewSymbol;
   size: number;
+  colors: any;
   emphasized?: boolean;
 }
 
-const PreviewNeonMark = ({symbol, size, emphasized = false}: PreviewMarkProps) => {
+const PreviewNeonMark = ({ symbol, size, colors, emphasized = false }: PreviewMarkProps) => {
+  const styles = useMemo(() => getStyles(colors, {}), [colors]);
+
   if (symbol === 'O') {
     const core = size;
     const glow = Math.round(size * 1.1);
@@ -44,10 +49,10 @@ const PreviewNeonMark = ({symbol, size, emphasized = false}: PreviewMarkProps) =
     const outerBorder = Math.max(glowBorder + 2, Math.round(size * 0.24));
 
     return (
-      <View style={[styles.markWrap, {width: outer, height: outer}, emphasized && styles.markWrapEmphasized]}>
-        <View style={[styles.oRingLayer, {width: outer, height: outer, borderRadius: outer / 2, borderWidth: outerBorder}, styles.oRingOuter]} />
-        <View style={[styles.oRingLayer, {width: glow, height: glow, borderRadius: glow / 2, borderWidth: glowBorder}, styles.oRingGlow]} />
-        <View style={[styles.oRingLayer, {width: core, height: core, borderRadius: core / 2, borderWidth: coreBorder}, styles.oRingCore]} />
+      <View style={[styles.markWrap, { width: outer, height: outer }, emphasized && styles.markWrapEmphasized]}>
+        <View style={[styles.oRingLayer, { width: outer, height: outer, borderRadius: outer / 2, borderWidth: outerBorder }, styles.oRingOuter]} />
+        <View style={[styles.oRingLayer, { width: glow, height: glow, borderRadius: glow / 2, borderWidth: glowBorder }, styles.oRingGlow]} />
+        <View style={[styles.oRingLayer, { width: core, height: core, borderRadius: core / 2, borderWidth: coreBorder }, styles.oRingCore]} />
       </View>
     );
   }
@@ -60,20 +65,23 @@ const PreviewNeonMark = ({symbol, size, emphasized = false}: PreviewMarkProps) =
   const outerH = coreH + 7;
 
   return (
-    <View style={[styles.markWrap, {width: outerW, height: outerW}, emphasized && styles.markWrapEmphasized]}>
-      <View style={[styles.xStroke, styles.xStrokeOne, {width: outerW, height: outerH, borderRadius: outerH}, styles.xStrokeOuter]} />
-      <View style={[styles.xStroke, styles.xStrokeTwo, {width: outerW, height: outerH, borderRadius: outerH}, styles.xStrokeOuter]} />
-      <View style={[styles.xStroke, styles.xStrokeOne, {width: glowW, height: glowH, borderRadius: glowH}, styles.xStrokeGlow]} />
-      <View style={[styles.xStroke, styles.xStrokeTwo, {width: glowW, height: glowH, borderRadius: glowH}, styles.xStrokeGlow]} />
-      <View style={[styles.xStroke, styles.xStrokeOne, {width: coreW, height: coreH, borderRadius: coreH}, styles.xStrokeCore]} />
-      <View style={[styles.xStroke, styles.xStrokeTwo, {width: coreW, height: coreH, borderRadius: coreH}, styles.xStrokeCore]} />
+    <View style={[styles.markWrap, { width: outerW, height: outerW }, emphasized && styles.markWrapEmphasized]}>
+      <View style={[styles.xStroke, styles.xStrokeOne, { width: outerW, height: outerH, borderRadius: outerH }, styles.xStrokeOuter]} />
+      <View style={[styles.xStroke, styles.xStrokeTwo, { width: outerW, height: outerH, borderRadius: outerH }, styles.xStrokeOuter]} />
+      <View style={[styles.xStroke, styles.xStrokeOne, { width: glowW, height: glowH, borderRadius: glowH }, styles.xStrokeGlow]} />
+      <View style={[styles.xStroke, styles.xStrokeTwo, { width: glowW, height: glowH, borderRadius: glowH }, styles.xStrokeGlow]} />
+      <View style={[styles.xStroke, styles.xStrokeOne, { width: coreW, height: coreH, borderRadius: coreH }, styles.xStrokeCore]} />
+      <View style={[styles.xStroke, styles.xStrokeTwo, { width: coreW, height: coreH, borderRadius: coreH }, styles.xStrokeCore]} />
     </View>
   );
 };
 
-const LevelSelectionScreen = ({adsReady, onStartGame}: LevelSelectionScreenProps) => {
-  const {width, height} = useWindowDimensions();
+const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenProps) => {
+  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const { colors, shadows } = theme;
+
   const contentWidth = getContentWidth(width, 16, 560);
   const compact = height < 760;
   const boardSize = Math.min(contentWidth * (compact ? 0.74 : 0.78), scaleSize(compact ? 286 : 324, width));
@@ -86,22 +94,39 @@ const LevelSelectionScreen = ({adsReady, onStartGame}: LevelSelectionScreenProps
   const modalLabelSize = Math.max(18, scaleSize(22, width));
 
   const [showDifficultyModal, setShowDifficultyModal] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [careerStats, setCareerStats] = useState<CareerStats | null>(null);
+  const [menuStats, setMenuStats] = useState<CareerStats | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('Medium');
 
   const selectedIndex = useMemo(() => LEVELS.indexOf(selectedDifficulty), [selectedDifficulty]);
 
   useEffect(() => {
-    const backSubscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (!showDifficultyModal) {
-        return false;
-      }
+    getCareerStats()
+      .then(stats => {
+        setMenuStats(stats);
+        if (showStatsModal) {
+          setCareerStats(stats);
+        }
+      })
+      .catch(() => {});
+  }, [showStatsModal]);
 
-      setShowDifficultyModal(false);
-      return true;
+  useEffect(() => {
+    const backSubscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (showDifficultyModal) {
+        setShowDifficultyModal(false);
+        return true;
+      }
+      if (showStatsModal) {
+        setShowStatsModal(false);
+        return true;
+      }
+      return false;
     });
 
     return () => backSubscription.remove();
-  }, [showDifficultyModal]);
+  }, [showDifficultyModal, showStatsModal]);
 
   const handlePvAI = () => setShowDifficultyModal(true);
   const handlePvp = () => onStartGame('PVP');
@@ -109,6 +134,13 @@ const LevelSelectionScreen = ({adsReady, onStartGame}: LevelSelectionScreenProps
     setShowDifficultyModal(false);
     onStartGame('PVAI', selectedDifficulty);
   };
+
+  const handleResetStats = async () => {
+    const fresh = await resetCareerStats();
+    setCareerStats(fresh);
+  };
+
+  const styles = useMemo(() => getStyles(colors, shadows), [colors, shadows]);
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
@@ -122,22 +154,48 @@ const LevelSelectionScreen = ({adsReady, onStartGame}: LevelSelectionScreenProps
         <View pointerEvents="none" style={styles.sparkB} />
         <View pointerEvents="none" style={styles.sparkC} />
 
+        {/* Top Header Bar for Stats & Streak */}
+        <View style={[styles.topHeaderBar, { width: contentWidth }]}>
+          <View style={styles.profileBadge}>
+            <Icon name="person-circle-outline" size={20} color={colors.pinkPrimary} />
+            <Text style={styles.profileBadgeText}>Streak: {menuStats?.currentStreak || 0} 🔥</Text>
+          </View>
+          <Pressable
+            onPress={() => setShowStatsModal(true)}
+            accessibilityRole="button"
+            accessibilityLabel="View Career Stats"
+            style={({ pressed }) => [styles.statsBtn, pressed && styles.statsBtnPressed]}
+          >
+            <Icon name="trophy-outline" size={18} color={colors.cyanPrimary} />
+            <Text style={styles.statsBtnText}>STATS</Text>
+          </Pressable>
+        </View>
+
         <ScrollView
           bounces={false}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: compact ? spacing.md : spacing.lg,
+              paddingTop: compact ? spacing.xs : spacing.sm,
               paddingBottom: (compact ? spacing.lg : spacing.xxl) + Math.max(insets.bottom, spacing.sm),
             },
-          ]}>
-          <View style={[styles.content, {width: contentWidth}]}> 
-            <Text style={[styles.title, {fontSize: titleSize}]}>SELECT MODE</Text>
-            <Text style={[styles.subtitle, {fontSize: subtitleSize}]}>Choose how you want to play</Text>
+          ]}
+        >
+          <View style={[styles.content, { width: contentWidth }]}>
+            <Text style={[styles.title, { fontSize: titleSize }]}>SELECT MODE</Text>
+            <Text style={[styles.subtitle, { fontSize: subtitleSize }]}>Choose how you want to play</Text>
             <View pointerEvents="none" style={styles.heroFlare} />
 
-            <View style={[styles.previewWrap, {width: boardSize, height: boardSize}]}> 
+            {/* Daily Mission Capsule Card */}
+            <View style={styles.dailyMissionCard}>
+              <Icon name="sparkles-outline" size={14} color={colors.warning} />
+              <Text style={styles.dailyMissionText}>
+                DAILY MISSION: Duel the hard AI to earn a Supernova Token
+              </Text>
+            </View>
+
+            <View style={[styles.previewWrap, { width: boardSize, height: boardSize }]}>
               <View pointerEvents="none" style={styles.previewOuterPinkAura} />
               <View pointerEvents="none" style={styles.previewOuterCyanAura} />
               <View style={styles.previewBoard}>
@@ -145,57 +203,113 @@ const LevelSelectionScreen = ({adsReady, onStartGame}: LevelSelectionScreenProps
                 {PREVIEW_PATTERN.map((symbol, index) => (
                   <View key={`preview-cell-${index}`} style={styles.previewCell}>
                     <View pointerEvents="none" style={styles.previewCellShade} />
-                    <PreviewNeonMark symbol={symbol} size={previewMarkSize} emphasized={index === 4} />
+                    <PreviewNeonMark symbol={symbol} size={previewMarkSize} colors={colors} emphasized={index === 4} />
                   </View>
                 ))}
 
                 <View pointerEvents="none" style={styles.gridOverlay}>
-                  <View style={[styles.gridLineVertical, {left: '33.3333%'}]} />
-                  <View style={[styles.gridLineVertical, {left: '66.6666%'}]} />
-                  <View style={[styles.gridLineHorizontal, {top: '33.3333%'}]} />
-                  <View style={[styles.gridLineHorizontal, {top: '66.6666%'}]} />
+                  <View style={[styles.gridLineVertical, { left: '33.3333%' }]} />
+                  <View style={[styles.gridLineVertical, { left: '66.6666%' }]} />
+                  <View style={[styles.gridLineHorizontal, { top: '33.3333%' }]} />
+                  <View style={[styles.gridLineHorizontal, { top: '66.6666%' }]} />
                 </View>
               </View>
             </View>
 
             <View style={styles.menuStack}>
+              {/* PvP Card */}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Play against AI"
-                style={({pressed}) => [styles.modeButton, styles.modeButtonCyan, pressed && styles.modeButtonPressed]}
-                onPress={handlePvAI}>
-                <View style={[styles.modeButtonIconOrb, styles.modeButtonIconOrbCyan]}>
-                  <Icon name="hardware-chip-outline" size={20} color={colors.cyanPrimary} />
+                accessibilityLabel="Play against another player (PVP)"
+                style={({ pressed }) => [
+                  styles.modeCard,
+                  styles.modeCardCyan,
+                  pressed && styles.modeCardPressed,
+                ]}
+                onPress={handlePvp}
+              >
+                <View style={styles.modeCardContent}>
+                  <View style={[styles.modeCardIconOrb, styles.modeCardIconOrbCyan]}>
+                    <Icon name="people-outline" size={22} color={colors.cyanPrimary} />
+                  </View>
+                  <View style={styles.modeCardTextWrap}>
+                    <Text style={[styles.modeCardTitle, { fontSize: buttonLabelSize }]}>COSMIC DUEL (PVP)</Text>
+                    <Text style={styles.modeCardDesc}>Play with a localized soul or synchronize globally.</Text>
+                  </View>
+                  <Icon name="chevron-forward" size={18} color={colors.cyanPrimary} />
                 </View>
-                <Text style={[styles.modeButtonText, styles.modeButtonTextCyan, {fontSize: buttonLabelSize}]}>PLAYER VS AI</Text>
-                <Icon name="chevron-forward" size={22} color={colors.cyanPrimary} />
               </Pressable>
 
+              {/* PvBot Card */}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Play against another player"
-                style={({pressed}) => [styles.modeButton, styles.modeButtonPink, pressed && styles.modeButtonPressed]}
-                onPress={handlePvp}>
-                <View style={[styles.modeButtonIconOrb, styles.modeButtonIconOrbPink]}>
-                  <Icon name="people-outline" size={20} color={colors.pinkPrimary} />
+                accessibilityLabel="Play against AI (Bot)"
+                style={({ pressed }) => [
+                  styles.modeCard,
+                  styles.modeCardPink,
+                  pressed && styles.modeCardPressed,
+                ]}
+                onPress={handlePvAI}
+              >
+                <View style={styles.modeCardContent}>
+                  <View style={[styles.modeCardIconOrb, styles.modeCardIconOrbPink]}>
+                    <Icon name="hardware-chip-outline" size={22} color={colors.pinkPrimary} />
+                  </View>
+                  <View style={styles.modeCardTextWrap}>
+                    <Text style={[styles.modeCardTitle, { fontSize: buttonLabelSize, color: colors.pinkPrimary }]}>ASTRAL INTELLIGENCE</Text>
+                    <Text style={styles.modeCardDesc}>Test your alignment limits against adaptive bot nodes.</Text>
+                  </View>
+                  <Icon name="chevron-forward" size={18} color={colors.pinkPrimary} />
                 </View>
-                <Text style={[styles.modeButtonText, styles.modeButtonTextPink, {fontSize: buttonLabelSize}]}>PLAYER VS PLAYER</Text>
-                <Icon name="chevron-forward" size={22} color={colors.pinkPrimary} />
               </Pressable>
-
             </View>
+
+            {/* Translucent Glass Career Stats Summary */}
+            {menuStats && (
+              <View style={styles.dashboardCard}>
+                <Text style={styles.dashboardTitle}>CAREER OVERVIEW</Text>
+                <View style={styles.dashboardDivider} />
+                <View style={styles.dashboardGrid}>
+                  <View style={styles.dashboardItem}>
+                    <Text style={styles.dashboardVal}>
+                      {menuStats.pvpWinsX + menuStats.pvpWinsO + menuStats.pvaiWinsUser}
+                    </Text>
+                    <Text style={styles.dashboardLabel}>Wins</Text>
+                  </View>
+                  <View style={styles.dashboardItem}>
+                    <Text style={[styles.dashboardVal, { color: colors.pinkPrimary }]}>
+                      {menuStats.pvpPlayed + menuStats.pvaiPlayed}
+                    </Text>
+                    <Text style={styles.dashboardLabel}>Played</Text>
+                  </View>
+                  <View style={styles.dashboardItem}>
+                    <Text style={[styles.dashboardVal, { color: colors.warning }]}>
+                      {Math.round(
+                        ((menuStats.pvpWinsX + menuStats.pvpWinsO + menuStats.pvaiWinsUser) /
+                          Math.max(1, menuStats.pvpPlayed + menuStats.pvaiPlayed)) *
+                          100
+                      )}
+                      %
+                    </Text>
+                    <Text style={styles.dashboardLabel}>WinRate</Text>
+                  </View>
+                </View>
+              </View>
+            )}
 
             {adsReady ? <AdBanner compact /> : null}
           </View>
         </ScrollView>
 
+        {/* AI Difficulty Modal */}
         <Modal
           transparent
           visible={showDifficultyModal}
           animationType="fade"
-          onRequestClose={() => setShowDifficultyModal(false)}>
+          onRequestClose={() => setShowDifficultyModal(false)}
+        >
           <Pressable style={styles.modalBackdrop} onPress={() => setShowDifficultyModal(false)}>
-            <Pressable style={[styles.modalCard, {width: Math.min(contentWidth, 380)}]} onPress={() => {}}>
+            <Pressable style={[styles.modalCard, { width: Math.min(contentWidth, 380) }]} onPress={() => {}}>
               <View style={styles.modalTopRow}>
                 <View style={styles.modalHeaderTag}>
                   <Icon name="sparkles-outline" size={16} color={colors.pinkPrimary} />
@@ -206,18 +320,19 @@ const LevelSelectionScreen = ({adsReady, onStartGame}: LevelSelectionScreenProps
                   accessibilityRole="button"
                   accessibilityLabel="Close difficulty modal"
                   onPress={() => setShowDifficultyModal(false)}
-                  style={({pressed}) => [styles.modalCloseButton, pressed && styles.modalCloseButtonPressed]}>
+                  style={({ pressed }) => [styles.modalCloseButton, pressed && styles.modalCloseButtonPressed]}
+                >
                   <Icon name="close" size={18} color={colors.backgroundAlt} />
                 </Pressable>
               </View>
 
-              <Text style={[styles.modalTitle, {fontSize: modalTitleSize}]}>Choose Your Challenge</Text>
+              <Text style={[styles.modalTitle, { fontSize: modalTitleSize }]}>Choose Your Challenge</Text>
               <Text style={styles.modalSubtitle}>Select the AI difficulty for this match</Text>
               <View pointerEvents="none" style={styles.modalFlare} />
 
               <View style={styles.modalPanel}>
                 <Text style={styles.modalPanelLabel}>Difficulty</Text>
-                <Text style={[styles.modalDifficultyValue, {fontSize: modalLabelSize}]}>{selectedDifficulty.toUpperCase()}</Text>
+                <Text style={[styles.modalDifficultyValue, { fontSize: modalLabelSize }]}>{selectedDifficulty.toUpperCase()}</Text>
 
                 <View style={styles.sliderWrap}>
                   <View pointerEvents="none" style={styles.sliderTrack} />
@@ -229,7 +344,8 @@ const LevelSelectionScreen = ({adsReady, onStartGame}: LevelSelectionScreenProps
                         accessibilityRole="button"
                         accessibilityLabel={`Set difficulty ${level}`}
                         onPress={() => setSelectedDifficulty(level)}
-                        style={styles.sliderNodeHitArea}>
+                        style={styles.sliderNodeHitArea}
+                      >
                         <View style={[styles.sliderNodeOuter, active && styles.sliderNodeOuterActive]}>
                           <View style={[styles.sliderNodeInner, active && styles.sliderNodeInnerActive]} />
                         </View>
@@ -243,7 +359,8 @@ const LevelSelectionScreen = ({adsReady, onStartGame}: LevelSelectionScreenProps
                   accessibilityRole="button"
                   accessibilityLabel="Start player versus AI game"
                   onPress={confirmPvAI}
-                  style={({pressed}) => [styles.modalStartButton, pressed && styles.modeButtonPressed]}>
+                  style={({ pressed }) => [styles.modalStartButton, pressed && styles.modeCardPressed]}
+                >
                   <Text style={styles.modalStartButtonText}>START</Text>
                 </Pressable>
               </View>
@@ -254,506 +371,799 @@ const LevelSelectionScreen = ({adsReady, onStartGame}: LevelSelectionScreenProps
             </Pressable>
           </Pressable>
         </Modal>
+
+        {/* Lifetime Career Stats Modal */}
+        <Modal
+          transparent
+          visible={showStatsModal}
+          animationType="fade"
+          onRequestClose={() => setShowStatsModal(false)}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={() => setShowStatsModal(false)}>
+            <Pressable style={[styles.modalCard, { width: Math.min(contentWidth, 380) }]} onPress={() => {}}>
+              <View style={styles.modalTopRow}>
+                <View style={styles.modalHeaderTag}>
+                  <Icon name="trophy-outline" size={16} color={colors.pinkPrimary} />
+                  <Text style={styles.modalHeaderTagText}>LIFETIME STATS</Text>
+                </View>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close stats modal"
+                  onPress={() => setShowStatsModal(false)}
+                  style={({ pressed }) => [styles.modalCloseButton, pressed && styles.modalCloseButtonPressed]}
+                >
+                  <Icon name="close" size={18} color={colors.backgroundAlt} />
+                </Pressable>
+              </View>
+
+              <Text style={[styles.modalTitle, { fontSize: modalTitleSize }]}>Your Performance</Text>
+              <Text style={styles.modalSubtitle}>Lifetime matches history and stats</Text>
+              <View pointerEvents="none" style={styles.modalFlare} />
+
+              {careerStats ? (
+                <View style={styles.statsContent}>
+                  {/* Streak Card */}
+                  <View style={styles.streakGrid}>
+                    <View style={styles.streakBox}>
+                      <Text style={styles.streakNum}>{careerStats.currentStreak}</Text>
+                      <Text style={styles.streakLabel}>Current Streak</Text>
+                    </View>
+                    <View style={styles.streakBox}>
+                      <Text style={[styles.streakNum, { color: colors.pinkPrimary }]}>{careerStats.bestStreak}</Text>
+                      <Text style={styles.streakLabel}>Best Streak</Text>
+                    </View>
+                  </View>
+
+                  {/* PVAI Stats */}
+                  <Text style={styles.statsSectionTitle}>VS COMP (AI)</Text>
+                  <View style={styles.statsCard}>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Played</Text>
+                      <Text style={styles.statVal}>{careerStats.pvaiPlayed}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Wins</Text>
+                      <Text style={[styles.statVal, { color: colors.cyanPrimary }]}>{careerStats.pvaiWinsUser}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Losses</Text>
+                      <Text style={[styles.statVal, { color: colors.pinkPrimary }]}>{careerStats.pvaiWinsAi}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Draws</Text>
+                      <Text style={styles.statVal}>{careerStats.pvaiDraws}</Text>
+                    </View>
+                  </View>
+
+                  {/* PVP Stats */}
+                  <Text style={styles.statsSectionTitle}>VS LOCAL PLAYER</Text>
+                  <View style={styles.statsCard}>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Played</Text>
+                      <Text style={styles.statVal}>{careerStats.pvpPlayed}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Wins X</Text>
+                      <Text style={styles.statVal}>{careerStats.pvpWinsX}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Wins O</Text>
+                      <Text style={styles.statVal}>{careerStats.pvpWinsO}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Draws</Text>
+                      <Text style={styles.statVal}>{careerStats.pvpDraws}</Text>
+                    </View>
+                  </View>
+
+                  {/* Reset Button */}
+                  <Pressable
+                    onPress={handleResetStats}
+                    style={({ pressed }) => [styles.resetStatsBtn, pressed && styles.statsBtnPressed]}
+                  >
+                    <Icon name="trash-outline" size={16} color={colors.pinkPrimary} />
+                    <Text style={styles.resetStatsText}>RESET STATS</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Text style={styles.modalSubtitle}>Loading statistics...</Text>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
       </View>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.backgroundAlt,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: colors.backgroundAlt,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  content: {
-    width: '100%',
-    alignSelf: 'center',
-    alignItems: 'center',
-  },
-  topGlow: {
-    position: 'absolute',
-    width: 520,
-    height: 520,
-    borderRadius: 520,
-    top: -290,
-    left: -70,
-    backgroundColor: 'rgba(41, 110, 255, 0.3)',
-  },
-  midGlow: {
-    position: 'absolute',
-    width: 460,
-    height: 460,
-    borderRadius: 460,
-    right: -250,
-    top: 120,
-    backgroundColor: 'rgba(28, 107, 241, 0.22)',
-  },
-  bottomGlow: {
-    position: 'absolute',
-    width: 560,
-    height: 560,
-    borderRadius: 560,
-    left: -270,
-    bottom: -280,
-    backgroundColor: 'rgba(171, 44, 255, 0.25)',
-  },
-  sparkA: {
-    position: 'absolute',
-    top: '19%',
-    left: '17%',
-    width: 5,
-    height: 5,
-    borderRadius: 5,
-    backgroundColor: colors.cyanPrimary,
-    shadowColor: colors.cyanGlow,
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  sparkB: {
-    position: 'absolute',
-    top: '27%',
-    right: '16%',
-    width: 4,
-    height: 4,
-    borderRadius: 4,
-    backgroundColor: colors.pinkPrimary,
-    shadowColor: colors.pinkGlow,
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  sparkC: {
-    position: 'absolute',
-    top: '59%',
-    right: '26%',
-    width: 4,
-    height: 4,
-    borderRadius: 4,
-    backgroundColor: colors.cyanBright,
-    shadowColor: colors.cyanGlow,
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  title: {
-    color: colors.textPrimary,
-    fontWeight: typography.weight.heavy,
-    letterSpacing: typography.tracking.xwide,
-    textShadowColor: 'rgba(95, 244, 255, 0.32)',
-    textShadowOffset: {width: 0, height: 0},
-    textShadowRadius: 10,
-  },
-  subtitle: {
-    marginTop: 4,
-    color: colors.textSecondary,
-    fontWeight: typography.weight.semibold,
-    letterSpacing: typography.tracking.normal,
-    textAlign: 'center',
-  },
-  heroFlare: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.lg,
-    width: '74%',
-    height: 2,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(80, 222, 255, 0.92)',
-    shadowColor: colors.cyanGlow,
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.9,
-    shadowRadius: 9,
-    elevation: 6,
-  },
-  previewWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xl,
-    borderRadius: radii.xxl + 4,
-  },
-  previewOuterPinkAura: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: radii.xxl + 8,
-    borderWidth: 3,
-    borderColor: 'rgba(244, 108, 255, 0.18)',
-  },
-  previewOuterCyanAura: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: radii.xxl + 8,
-    borderWidth: 2,
-    borderColor: 'rgba(49, 234, 255, 0.28)',
-    ...shadows.cyanStrong,
-  },
-  previewBoard: {
-    width: '100%',
-    height: '100%',
-    borderRadius: radii.xxl,
-    borderWidth: 2,
-    borderColor: colors.cyanBorder,
-    backgroundColor: 'rgba(4, 17, 71, 0.68)',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    overflow: 'hidden',
-  },
-  previewBoardInnerShade: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: radii.xxl,
-    borderWidth: 6,
-    borderColor: 'rgba(81, 145, 255, 0.07)',
-  },
-  previewCell: {
-    width: '33.3333%',
-    height: '33.3333%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  previewCellShade: {
-    position: 'absolute',
-    width: '82%',
-    height: '82%',
-    backgroundColor: 'rgba(7, 31, 96, 0.28)',
-  },
-  markWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  markWrapEmphasized: {
-    transform: [{scale: 1.05}],
-  },
-  oRingLayer: {
-    position: 'absolute',
-  },
-  oRingOuter: {
-    borderColor: colors.markOOuter,
-  },
-  oRingGlow: {
-    borderColor: colors.markOGlow,
-  },
-  oRingCore: {
-    borderColor: colors.markCore,
-  },
-  xStroke: {
-    position: 'absolute',
-  },
-  xStrokeOne: {
-    transform: [{rotate: '45deg'}],
-  },
-  xStrokeTwo: {
-    transform: [{rotate: '-45deg'}],
-  },
-  xStrokeOuter: {
-    backgroundColor: colors.markXOuter,
-  },
-  xStrokeGlow: {
-    backgroundColor: colors.markXGlow,
-  },
-  xStrokeCore: {
-    backgroundColor: colors.markCore,
-  },
-  gridOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  gridLineVertical: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 2,
-    marginLeft: -1,
-    backgroundColor: 'rgba(39, 207, 255, 0.34)',
-  },
-  gridLineHorizontal: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 2,
-    marginTop: -1,
-    backgroundColor: 'rgba(39, 207, 255, 0.34)',
-  },
-  menuStack: {
-    width: '100%',
-    gap: spacing.sm,
-  },
-  modeButton: {
-    minHeight: 60,
-    borderRadius: radii.xl,
-    borderWidth: 1.8,
-    paddingHorizontal: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-  },
-  modeButtonCyan: {
-    borderColor: colors.cyanPrimary,
-    backgroundColor: 'rgba(8, 45, 118, 0.9)',
-    ...shadows.cyanSoft,
-    ...(Platform.OS === 'android' ? {elevation: 0} : {}),
-  },
-  modeButtonPink: {
-    borderColor: colors.pinkBorder,
-    backgroundColor: 'rgba(47, 21, 95, 0.9)',
-    ...shadows.pinkSoft,
-    ...(Platform.OS === 'android' ? {elevation: 0} : {}),
-  },
-  modeButtonDisabled: {
-    borderColor: 'rgba(148, 166, 214, 0.32)',
-    backgroundColor: 'rgba(22, 32, 77, 0.86)',
-  },
-  modeButtonPressed: {
-    opacity: 0.88,
-    transform: [{scale: 0.985}],
-  },
-  modeButtonIconOrb: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    borderWidth: 1.2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modeButtonIconOrbCyan: {
-    borderColor: 'rgba(58, 235, 255, 0.6)',
-    backgroundColor: 'rgba(11, 78, 156, 0.72)',
-  },
-  modeButtonIconOrbPink: {
-    borderColor: 'rgba(244, 108, 255, 0.55)',
-    backgroundColor: 'rgba(95, 31, 123, 0.72)',
-  },
-  modeButtonIconOrbDisabled: {
-    borderColor: 'rgba(167, 182, 229, 0.3)',
-    backgroundColor: 'rgba(46, 58, 100, 0.36)',
-  },
-  modeButtonText: {
-    flex: 1,
-    textAlign: 'center',
-    color: colors.textPrimary,
-    fontWeight: typography.weight.heavy,
-    letterSpacing: typography.tracking.wide,
-  },
-  modeButtonTextCyan: {
-    textShadowColor: 'rgba(55, 238, 255, 0.22)',
-    textShadowOffset: {width: 0, height: 0},
-    textShadowRadius: 7,
-  },
-  modeButtonTextPink: {
-    textShadowColor: 'rgba(255, 91, 247, 0.2)',
-    textShadowOffset: {width: 0, height: 0},
-    textShadowRadius: 7,
-  },
-  modeButtonTextDisabled: {
-    color: 'rgba(220, 231, 255, 0.58)',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: colors.overlayDark,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  modalCard: {
-    borderRadius: radii.xxl,
-    borderWidth: 2,
-    borderColor: colors.cyanBorder,
-    backgroundColor: 'rgba(8, 37, 116, 0.96)',
-    padding: spacing.lg,
-    ...shadows.cyanStrong,
-  },
-  modalTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  modalHeaderTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: 'rgba(221, 145, 255, 0.35)',
-    backgroundColor: 'rgba(71, 30, 111, 0.26)',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    gap: 6,
-  },
-  modalHeaderTagText: {
-    color: colors.textPrimary,
-    fontWeight: typography.weight.bold,
-    fontSize: typography.size.xs,
-    letterSpacing: typography.tracking.tight,
-  },
-  modalCloseButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    borderWidth: 1.4,
-    borderColor: colors.textPrimary,
-    backgroundColor: colors.cyanPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.cyanSoft,
-  },
-  modalCloseButtonPressed: {
-    opacity: 0.86,
-    transform: [{scale: 0.96}],
-  },
-  modalTitle: {
-    color: colors.textPrimary,
-    fontWeight: typography.weight.heavy,
-    letterSpacing: typography.tracking.normal,
-    textShadowColor: 'rgba(130, 223, 255, 0.26)',
-    textShadowOffset: {width: 0, height: 0},
-    textShadowRadius: 8,
-  },
-  modalSubtitle: {
-    marginTop: 6,
-    color: colors.textSecondary,
-    fontWeight: typography.weight.medium,
-    letterSpacing: typography.tracking.tight,
-  },
-  modalFlare: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-    width: '72%',
-    height: 2,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(76, 225, 255, 0.86)',
-    shadowColor: colors.cyanGlow,
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.75,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  modalPanel: {
-    borderRadius: radii.xl,
-    borderWidth: 1.4,
-    borderColor: 'rgba(100, 223, 255, 0.44)',
-    backgroundColor: 'rgba(9, 39, 101, 0.66)',
-    padding: spacing.md,
-  },
-  modalPanelLabel: {
-    color: colors.textPrimary,
-    fontWeight: typography.weight.semibold,
-    textAlign: 'center',
-    letterSpacing: typography.tracking.tight,
-    fontSize: typography.size.md,
-  },
-  modalDifficultyValue: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.md,
-    color: colors.warning,
-    fontWeight: typography.weight.heavy,
-    textAlign: 'center',
-    letterSpacing: typography.tracking.wide,
-    textShadowColor: 'rgba(255, 208, 100, 0.32)',
-    textShadowOffset: {width: 0, height: 0},
-    textShadowRadius: 8,
-  },
-  sliderWrap: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    position: 'relative',
-    paddingHorizontal: spacing.xs,
-  },
-  sliderTrack: {
-    position: 'absolute',
-    left: '16.6667%',
-    right: '16.6667%',
-    top: 10,
-    height: 3,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(110, 210, 255, 0.45)',
-  },
-  sliderNodeHitArea: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  sliderNodeOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(174, 194, 255, 0.72)',
-    borderWidth: 2,
-    borderColor: colors.backgroundAlt,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sliderNodeOuterActive: {
-    backgroundColor: 'rgba(255, 219, 105, 0.92)',
-    borderColor: colors.textPrimary,
-    transform: [{scale: 1.12}],
-    shadowColor: 'rgba(255, 211, 104, 0.75)',
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.75,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  sliderNodeInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(12, 18, 71, 0.7)',
-  },
-  sliderNodeInnerActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-  },
-  sliderLabel: {
-    marginTop: spacing.xs,
-    color: colors.textSecondary,
-    fontWeight: typography.weight.bold,
-    fontSize: typography.size.xs,
-    letterSpacing: typography.tracking.tight,
-  },
-  sliderLabelActive: {
-    color: colors.textPrimary,
-  },
-  modalStartButton: {
-    marginTop: spacing.md,
-    borderRadius: radii.lg,
-    borderWidth: 1.6,
-    borderColor: colors.cyanPrimary,
-    backgroundColor: 'rgba(8, 66, 146, 0.88)',
-    minHeight: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.cyanSoft,
-  },
-  modalStartButtonText: {
-    color: colors.textPrimary,
-    fontWeight: typography.weight.heavy,
-    letterSpacing: typography.tracking.wide,
-    fontSize: typography.size.lg,
-  },
-  modalHintPill: {
-    marginTop: spacing.md,
-    borderRadius: radii.lg,
-    borderWidth: 1.2,
-    borderColor: 'rgba(145, 161, 255, 0.28)',
-    backgroundColor: 'rgba(16, 20, 72, 0.5)',
-    minHeight: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  modalHintText: {
-    color: 'rgba(230, 240, 255, 0.84)',
-    fontWeight: typography.weight.medium,
-    letterSpacing: typography.tracking.tight,
-    textAlign: 'center',
-    fontSize: typography.size.sm,
-  },
-});
+const getStyles = (colors: any, shadows: any) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.backgroundAlt,
+    },
+    container: {
+      flex: 1,
+      backgroundColor: colors.backgroundAlt,
+    },
+    topHeaderBar: {
+      alignSelf: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      zIndex: 10,
+    },
+    profileBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderRadius: radii.pill,
+      borderWidth: 1.2,
+      borderColor: colors.pinkBorder,
+      backgroundColor: colors.cardSurfaceSoft,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      ...shadows.pinkSoft,
+    },
+    profileBadgeText: {
+      color: colors.textPrimary,
+      fontWeight: typography.weight.bold,
+      fontSize: typography.size.xs,
+    },
+    statsBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderRadius: radii.pill,
+      borderWidth: 1.2,
+      borderColor: colors.cyanBorder,
+      backgroundColor: colors.cardSurfaceSoft,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      ...shadows.cyanSoft,
+    },
+    statsBtnText: {
+      color: colors.textPrimary,
+      fontWeight: typography.weight.bold,
+      fontSize: typography.size.xs,
+    },
+    statsBtnPressed: {
+      opacity: 0.8,
+      transform: [{ scale: 0.95 }],
+    },
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.xs,
+    },
+    content: {
+      width: '100%',
+      alignSelf: 'center',
+      alignItems: 'center',
+    },
+    topGlow: {
+      position: 'absolute',
+      width: 520,
+      height: 520,
+      borderRadius: 520,
+      top: -290,
+      left: -70,
+      backgroundColor: colors.glowPrimary,
+    },
+    midGlow: {
+      position: 'absolute',
+      width: 460,
+      height: 460,
+      borderRadius: 460,
+      right: -250,
+      top: 120,
+      backgroundColor: colors.glowPrimary,
+    },
+    bottomGlow: {
+      position: 'absolute',
+      width: 560,
+      height: 560,
+      borderRadius: 560,
+      left: -270,
+      bottom: -280,
+      backgroundColor: colors.glowSecondary,
+    },
+    sparkA: {
+      position: 'absolute',
+      top: '19%',
+      left: '17%',
+      width: 5,
+      height: 5,
+      borderRadius: 5,
+      backgroundColor: colors.cyanPrimary,
+      shadowColor: colors.cyanGlow,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.9,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    sparkB: {
+      position: 'absolute',
+      top: '27%',
+      right: '16%',
+      width: 4,
+      height: 4,
+      borderRadius: 4,
+      backgroundColor: colors.pinkPrimary,
+      shadowColor: colors.pinkGlow,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.9,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    sparkC: {
+      position: 'absolute',
+      top: '59%',
+      right: '26%',
+      width: 4,
+      height: 4,
+      borderRadius: 4,
+      backgroundColor: colors.cyanBright,
+      shadowColor: colors.cyanGlow,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.8,
+      shadowRadius: 6,
+      elevation: 6,
+    },
+    title: {
+      color: colors.textPrimary,
+      fontWeight: typography.weight.heavy,
+      letterSpacing: typography.tracking.xwide,
+      textShadowColor: colors.glowPrimary,
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 10,
+    },
+    subtitle: {
+      marginTop: 4,
+      color: colors.textSecondary,
+      fontWeight: typography.weight.semibold,
+      letterSpacing: typography.tracking.normal,
+      textAlign: 'center',
+    },
+    heroFlare: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.lg,
+      width: '74%',
+      height: 2,
+      borderRadius: radii.pill,
+      backgroundColor: colors.cyanSoft,
+      shadowColor: colors.cyanGlow,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.9,
+      shadowRadius: 9,
+      elevation: 6,
+    },
+    dailyMissionCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      borderRadius: radii.lg,
+      borderWidth: 1,
+      borderColor: colors.warning,
+      backgroundColor: 'rgba(255, 179, 0, 0.08)',
+      paddingVertical: 10,
+      paddingHorizontal: spacing.sm,
+      marginBottom: spacing.md,
+      width: '100%',
+    },
+    dailyMissionText: {
+      color: colors.warning,
+      fontWeight: typography.weight.semibold,
+      fontSize: typography.size.xs,
+      flex: 1,
+    },
+    previewWrap: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xl,
+      borderRadius: radii.xxl + 4,
+    },
+    previewOuterPinkAura: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: radii.xxl + 8,
+      borderWidth: 3,
+      borderColor: colors.glowSecondary,
+    },
+    previewOuterCyanAura: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: radii.xxl + 8,
+      borderWidth: 2,
+      borderColor: colors.cyanBorder,
+      ...shadows.cyanStrong,
+    },
+    previewBoard: {
+      width: '100%',
+      height: '100%',
+      borderRadius: radii.xxl,
+      borderWidth: 2,
+      borderColor: colors.cyanBorder,
+      backgroundColor: colors.previewBoardBg,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      overflow: 'hidden',
+    },
+    previewBoardInnerShade: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: radii.xxl,
+      borderWidth: 6,
+      borderColor: colors.previewBoardSecondaryBorder,
+    },
+    previewCell: {
+      width: '33.3333%',
+      height: '33.3333%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    previewCellShade: {
+      position: 'absolute',
+      width: '82%',
+      height: '82%',
+      backgroundColor: colors.previewCellBg,
+    },
+    markWrap: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    markWrapEmphasized: {
+      transform: [{ scale: 1.05 }],
+    },
+    oRingLayer: {
+      position: 'absolute',
+    },
+    oRingOuter: {
+      borderColor: colors.markOOuter,
+    },
+    oRingGlow: {
+      borderColor: colors.markOGlow,
+    },
+    oRingCore: {
+      borderColor: colors.markCore,
+    },
+    xStroke: {
+      position: 'absolute',
+    },
+    xStrokeOne: {
+      transform: [{ rotate: '45deg' }],
+    },
+    xStrokeTwo: {
+      transform: [{ rotate: '-45deg' }],
+    },
+    xStrokeOuter: {
+      backgroundColor: colors.markXOuter,
+    },
+    xStrokeGlow: {
+      backgroundColor: colors.markXGlow,
+    },
+    xStrokeCore: {
+      backgroundColor: colors.markCore,
+    },
+    gridOverlay: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    gridLineVertical: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      width: 2,
+      marginLeft: -1,
+      backgroundColor: colors.boardGridLine,
+    },
+    gridLineHorizontal: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      height: 2,
+      marginTop: -1,
+      backgroundColor: colors.boardGridLine,
+    },
+    menuStack: {
+      width: '100%',
+      gap: spacing.sm,
+    },
+    modeCard: {
+      minHeight: 80,
+      borderRadius: radii.xl,
+      borderWidth: 1.8,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    modeCardCyan: {
+      borderColor: colors.cyanPrimary,
+      backgroundColor: colors.cardSurface,
+      ...shadows.cyanSoft,
+      ...(Platform.OS === 'android' ? { elevation: 0 } : {}),
+    },
+    modeCardPink: {
+      borderColor: colors.pinkBorder,
+      backgroundColor: colors.cardSurfaceAlt,
+      ...shadows.pinkSoft,
+      ...(Platform.OS === 'android' ? { elevation: 0 } : {}),
+    },
+    modeCardPressed: {
+      opacity: 0.88,
+      transform: [{ scale: 0.985 }],
+    },
+    modeCardContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      width: '100%',
+    },
+    modeCardIconOrb: {
+      width: 44,
+      height: 44,
+      borderRadius: radii.pill,
+      borderWidth: 1.2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modeCardIconOrbCyan: {
+      borderColor: colors.cyanBorder,
+      backgroundColor: colors.cardSurfaceSoft,
+    },
+    modeCardIconOrbPink: {
+      borderColor: colors.pinkBorder,
+      backgroundColor: colors.cardSurfaceSoft,
+    },
+    modeCardTextWrap: {
+      flex: 1,
+      marginLeft: spacing.sm,
+      marginRight: spacing.xs,
+    },
+    modeCardTitle: {
+      color: colors.cyanPrimary,
+      fontWeight: typography.weight.heavy,
+      letterSpacing: typography.tracking.wide,
+      textShadowColor: colors.cyanGlow,
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 7,
+    },
+    modeCardDesc: {
+      color: colors.textSecondary,
+      fontSize: 10,
+      marginTop: 2,
+      fontWeight: typography.weight.semibold,
+    },
+    dashboardCard: {
+      width: '100%',
+      borderRadius: radii.xl,
+      borderWidth: 1.4,
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      backgroundColor: 'rgba(255, 255, 255, 0.03)',
+      padding: spacing.md,
+      marginTop: spacing.xl,
+      marginBottom: spacing.xs,
+    },
+    dashboardTitle: {
+      color: colors.textPrimary,
+      fontWeight: typography.weight.heavy,
+      fontSize: 11,
+      letterSpacing: typography.tracking.wide,
+      textAlign: 'center',
+      textShadowColor: colors.glowPrimary,
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 6,
+    },
+    dashboardDivider: {
+      height: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+      marginVertical: spacing.sm,
+    },
+    dashboardGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+    },
+    dashboardItem: {
+      alignItems: 'center',
+    },
+    dashboardVal: {
+      color: colors.cyanPrimary,
+      fontWeight: typography.weight.heavy,
+      fontSize: 20,
+      textShadowColor: colors.cyanGlow,
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 6,
+    },
+    dashboardLabel: {
+      color: colors.textSecondary,
+      fontSize: 10,
+      fontWeight: typography.weight.bold,
+      marginTop: 2,
+      letterSpacing: 0.5,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: colors.overlayDark,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    modalCard: {
+      borderRadius: radii.xxl,
+      borderWidth: 2,
+      borderColor: colors.cyanBorder,
+      backgroundColor: colors.cardSurfaceStrong,
+      padding: spacing.lg,
+      ...shadows.cyanStrong,
+    },
+    modalTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.sm,
+    },
+    modalHeaderTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: radii.pill,
+      borderWidth: 1,
+      borderColor: colors.glowSecondary,
+      backgroundColor: colors.cardSurfaceSoft,
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      gap: 6,
+    },
+    modalHeaderTagText: {
+      color: colors.textPrimary,
+      fontWeight: typography.weight.bold,
+      fontSize: typography.size.xs,
+      letterSpacing: typography.tracking.tight,
+    },
+    modalCloseButton: {
+      width: 34,
+      height: 34,
+      borderRadius: radii.pill,
+      borderWidth: 1.4,
+      borderColor: colors.textPrimary,
+      backgroundColor: colors.cyanPrimary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadows.cyanSoft,
+    },
+    modalCloseButtonPressed: {
+      opacity: 0.86,
+      transform: [{ scale: 0.96 }],
+    },
+    modalTitle: {
+      color: colors.textPrimary,
+      fontWeight: typography.weight.heavy,
+      letterSpacing: typography.tracking.normal,
+      textShadowColor: colors.cyanGlow,
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 8,
+    },
+    modalSubtitle: {
+      marginTop: 6,
+      color: colors.textSecondary,
+      fontWeight: typography.weight.medium,
+      letterSpacing: typography.tracking.tight,
+    },
+    modalFlare: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.md,
+      width: '72%',
+      height: 2,
+      borderRadius: radii.pill,
+      backgroundColor: colors.cyanSoft,
+      shadowColor: colors.cyanGlow,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.75,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    modalPanel: {
+      borderRadius: radii.xl,
+      borderWidth: 1.4,
+      borderColor: colors.modalPanelBorder,
+      backgroundColor: colors.modalPanelBg,
+      padding: spacing.md,
+    },
+    modalPanelLabel: {
+      color: colors.textPrimary,
+      fontWeight: typography.weight.semibold,
+      textAlign: 'center',
+      letterSpacing: typography.tracking.tight,
+      fontSize: typography.size.md,
+    },
+    modalDifficultyValue: {
+      marginTop: spacing.xs,
+      marginBottom: spacing.md,
+      color: colors.warning,
+      fontWeight: typography.weight.heavy,
+      textAlign: 'center',
+      letterSpacing: typography.tracking.wide,
+      textShadowColor: colors.warning,
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 8,
+    },
+    sliderWrap: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      position: 'relative',
+      paddingHorizontal: spacing.xs,
+    },
+    sliderTrack: {
+      position: 'absolute',
+      left: '16.6667%',
+      right: '16.6667%',
+      top: 10,
+      height: 3,
+      borderRadius: radii.pill,
+      backgroundColor: colors.sliderTrack,
+    },
+    sliderNodeHitArea: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    sliderNodeOuter: {
+      width: 22,
+      height: 22,
+      borderRadius: radii.pill,
+      backgroundColor: colors.sliderNodeBg,
+      borderWidth: 2,
+      borderColor: colors.backgroundAlt,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sliderNodeOuterActive: {
+      backgroundColor: colors.sliderNodeActiveBg,
+      borderColor: colors.textPrimary,
+      transform: [{ scale: 1.12 }],
+      shadowColor: colors.sliderNodeActiveGlow,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.75,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    sliderNodeInner: {
+      width: 8,
+      height: 8,
+      borderRadius: 8,
+      backgroundColor: colors.sliderNodeInnerBg,
+    },
+    sliderNodeInnerActive: {
+      backgroundColor: colors.sliderNodeInnerActiveBg,
+    },
+    sliderLabel: {
+      marginTop: spacing.xs,
+      color: colors.textSecondary,
+      fontWeight: typography.weight.bold,
+      fontSize: typography.size.xs,
+      letterSpacing: typography.tracking.tight,
+    },
+    sliderLabelActive: {
+      color: colors.textPrimary,
+    },
+    modalStartButton: {
+      marginTop: spacing.md,
+      borderRadius: radii.lg,
+      borderWidth: 1.6,
+      borderColor: colors.cyanPrimary,
+      backgroundColor: colors.cardSurface,
+      minHeight: 50,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadows.cyanSoft,
+    },
+    modalStartButtonText: {
+      color: colors.textPrimary,
+      fontWeight: typography.weight.heavy,
+      letterSpacing: typography.tracking.wide,
+      fontSize: typography.size.lg,
+    },
+    modalHintPill: {
+      marginTop: spacing.md,
+      borderRadius: radii.lg,
+      borderWidth: 1.2,
+      borderColor: colors.modalHintPillBorder,
+      backgroundColor: colors.modalHintPillBg,
+      minHeight: 42,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
+    },
+    modalHintText: {
+      color: colors.modalHintText,
+      fontWeight: typography.weight.medium,
+      letterSpacing: typography.tracking.tight,
+      textAlign: 'center',
+      fontSize: typography.size.sm,
+    },
+    statsContent: {
+      width: '100%',
+      marginTop: spacing.xs,
+    },
+    streakGrid: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    streakBox: {
+      flex: 1,
+      borderWidth: 1.2,
+      borderColor: colors.cyanBorder,
+      backgroundColor: colors.cardSurfaceSoft,
+      borderRadius: radii.lg,
+      paddingVertical: spacing.sm,
+      alignItems: 'center',
+    },
+    streakNum: {
+      color: colors.cyanPrimary,
+      fontWeight: typography.weight.heavy,
+      fontSize: 22,
+      textShadowColor: colors.cyanGlow,
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 8,
+    },
+    streakLabel: {
+      color: colors.textSecondary,
+      fontSize: 10,
+      fontWeight: typography.weight.bold,
+      marginTop: 2,
+    },
+    statsSectionTitle: {
+      color: colors.textPrimary,
+      fontWeight: typography.weight.heavy,
+      fontSize: 10,
+      letterSpacing: 1,
+      marginTop: spacing.xs,
+      marginBottom: 6,
+    },
+    statsCard: {
+      borderRadius: radii.lg,
+      borderWidth: 1.2,
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      backgroundColor: colors.cardSurfaceSoft,
+      padding: spacing.sm,
+      gap: 6,
+      marginBottom: spacing.xs,
+    },
+    statLine: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    statText: {
+      color: colors.textSecondary,
+      fontSize: typography.size.sm,
+      fontWeight: typography.weight.semibold,
+    },
+    statVal: {
+      color: colors.textPrimary,
+      fontWeight: typography.weight.bold,
+      fontSize: typography.size.sm,
+    },
+    resetStatsBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 10,
+      borderRadius: radii.md,
+      borderWidth: 1.2,
+      borderColor: colors.pinkBorder,
+      backgroundColor: colors.glowSecondary,
+      marginTop: spacing.md,
+    },
+    resetStatsText: {
+      color: colors.pinkPrimary,
+      fontWeight: typography.weight.heavy,
+      fontSize: 11,
+      letterSpacing: 0.8,
+    },
+  });
 
 export default LevelSelectionScreen;

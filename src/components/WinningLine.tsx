@@ -1,6 +1,6 @@
-import React, {useEffect, useMemo, useRef} from 'react';
-import {Animated, Easing, StyleSheet, View} from 'react-native';
-import {colors} from '../theme/tokens';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 
 interface WinningLineProps {
   line: number[] | null;
@@ -21,35 +21,6 @@ interface ParticleSpec {
 
 const SEGMENT_THICKNESS = 8;
 
-const PARTICLE_COLORS = [
-  colors.cyanBright,
-  colors.cyanGlow,
-  colors.pinkPrimary,
-  colors.pinkGlow,
-  colors.markOPrimary,
-  colors.markXPrimary,
-];
-
-const createParticles = (count: number): ParticleSpec[] =>
-  Array.from({length: count}, (_, index) => {
-    const angle = (index / count) * Math.PI * 2 + ((index % 3) - 1) * 0.16;
-    const distance = 28 + (index % 5) * 10;
-    const size = 4 + (index % 4) * 1.8;
-    const delay = (index % 6) * 0.04;
-    const spin = (index % 2 === 0 ? 1 : -1) * (80 + (index % 5) * 36);
-    const stretch = index % 3 === 0 ? 1 : index % 3 === 1 ? 1.8 : 2.2;
-
-    return {
-      angle,
-      distance,
-      size,
-      color: PARTICLE_COLORS[index % PARTICLE_COLORS.length],
-      delay,
-      spin,
-      stretch,
-    };
-  });
-
 const getCellCenterPx = (cellIndex: number, boardSize: number) => {
   const row = Math.floor(cellIndex / 3);
   const col = cellIndex % 3;
@@ -60,15 +31,48 @@ const getCellCenterPx = (cellIndex: number, boardSize: number) => {
   };
 };
 
-const WinningLine = ({line, boardSize, durationMs = 1200, onAnimationComplete}: WinningLineProps) => {
+const WinningLine = ({ line, boardSize, durationMs = 1200, onAnimationComplete }: WinningLineProps) => {
+  const { theme } = useTheme();
+  const { colors } = theme;
+
   const drawProgress = useRef(new Animated.Value(0)).current;
   const burstProgress = useRef(new Animated.Value(0)).current;
-  const particles = useRef(createParticles(16)).current;
   const onAnimationCompleteRef = useRef(onAnimationComplete);
 
   useEffect(() => {
     onAnimationCompleteRef.current = onAnimationComplete;
   }, [onAnimationComplete]);
+
+  const PARTICLE_COLORS = useMemo(() => [
+    colors.cyanBright,
+    colors.cyanGlow,
+    colors.pinkPrimary,
+    colors.pinkGlow,
+    colors.markOPrimary,
+    colors.markXPrimary,
+  ], [colors]);
+
+  const particles = useMemo(() => {
+    const count = 16;
+    return Array.from({ length: count }, (_, index) => {
+      const angle = (index / count) * Math.PI * 2 + ((index % 3) - 1) * 0.16;
+      const distance = 28 + (index % 5) * 10;
+      const size = 4 + (index % 4) * 1.8;
+      const delay = (index % 6) * 0.04;
+      const spin = (index % 2 === 0 ? 1 : -1) * (80 + (index % 5) * 36);
+      const stretch = index % 3 === 0 ? 1 : index % 3 === 1 ? 1.8 : 2.2;
+
+      return {
+        angle,
+        distance,
+        size,
+        color: PARTICLE_COLORS[index % PARTICLE_COLORS.length],
+        delay,
+        spin,
+        stretch,
+      };
+    });
+  }, [PARTICLE_COLORS]);
 
   const burstAnchors = useMemo(() => {
     if (!line || boardSize <= 0) {
@@ -121,7 +125,7 @@ const WinningLine = ({line, boardSize, durationMs = 1200, onAnimationComplete}: 
       useNativeDriver: true,
     });
 
-    Animated.sequence([drawAnimation, burstAnimation]).start(({finished}) => {
+    Animated.sequence([drawAnimation, burstAnimation]).start(({ finished }) => {
       if (finished) {
         onAnimationCompleteRef.current?.();
       }
@@ -132,6 +136,8 @@ const WinningLine = ({line, boardSize, durationMs = 1200, onAnimationComplete}: 
       burstAnimation.stop();
     };
   }, [line, boardSize, drawProgress, burstProgress, durationMs]);
+
+  const styles = useMemo(() => getStyles(colors), [colors]);
 
   if (!line || !lineGeometry) {
     return null;
@@ -152,9 +158,10 @@ const WinningLine = ({line, boardSize, durationMs = 1200, onAnimationComplete}: 
             height: SEGMENT_THICKNESS,
             left: lineGeometry.midX - lineGeometry.length / 2,
             top: lineGeometry.midY - SEGMENT_THICKNESS / 2,
-            transform: [{rotate: `${lineGeometry.angleDeg}deg`}],
+            transform: [{ rotate: `${lineGeometry.angleDeg}deg` }],
           },
-        ]}>
+        ]}
+      >
         <Animated.View
           style={[
             styles.segment,
@@ -170,7 +177,8 @@ const WinningLine = ({line, boardSize, durationMs = 1200, onAnimationComplete}: 
         <View
           key={`burst-anchor-${anchorIndex}`}
           pointerEvents="none"
-          style={[styles.burstAnchor, {left: anchor.x, top: anchor.y}]}>
+          style={[styles.burstAnchor, { left: anchor.x, top: anchor.y }]}
+        >
           {particles.map((particle, particleIndex) => {
             const phase = burstProgress.interpolate({
               inputRange: [0, particle.delay, 1],
@@ -221,7 +229,7 @@ const WinningLine = ({line, boardSize, durationMs = 1200, onAnimationComplete}: 
                     shadowColor: particle.color,
                     shadowRadius: particle.stretch > 1.5 ? 9 : 7,
                     opacity,
-                    transform: [{translateX}, {translateY}, {rotate}, {scale}],
+                    transform: [{ translateX }, { translateY }, { rotate }, { scale }],
                   },
                 ]}
               />
@@ -233,33 +241,34 @@ const WinningLine = ({line, boardSize, durationMs = 1200, onAnimationComplete}: 
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    position: 'absolute',
-  },
-  segment: {
-    backgroundColor: colors.markCore,
-    borderRadius: 999,
-    shadowColor: colors.cyanGlow,
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 1,
-    shadowRadius: 18,
-    elevation: 18,
-  },
-  segmentTrack: {
-    position: 'absolute',
-  },
-  burstAnchor: {
-    position: 'absolute',
-  },
-  particle: {
-    position: 'absolute',
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.9,
-    shadowRadius: 7,
-    elevation: 9,
-  },
-});
+const getStyles = (colors: any) =>
+  StyleSheet.create({
+    overlay: {
+      ...StyleSheet.absoluteFillObject,
+      position: 'absolute',
+    },
+    segment: {
+      backgroundColor: colors.markCore,
+      borderRadius: 999,
+      shadowColor: colors.cyanGlow,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 1,
+      shadowRadius: 18,
+      elevation: 18,
+    },
+    segmentTrack: {
+      position: 'absolute',
+    },
+    burstAnchor: {
+      position: 'absolute',
+    },
+    particle: {
+      position: 'absolute',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.9,
+      shadowRadius: 7,
+      elevation: 9,
+    },
+  });
 
 export default WinningLine;

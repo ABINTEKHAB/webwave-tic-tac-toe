@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const colors = {
   backgroundBase: '#060031',
   backgroundAlt: '#03052f',
@@ -26,6 +28,26 @@ export const colors = {
   textSecondary: '#9dc0df',
   textAccent: '#3febff',
   warning: '#ffcb55',
+  dotInactiveBorder: 'rgba(117, 240, 255, 0.7)',
+  dotInactiveBackground: 'rgba(11, 61, 138, 0.7)',
+  boardGridLine: 'rgba(39, 207, 255, 0.22)',
+  boardSecondaryGlow: 'rgba(19, 187, 255, 0.16)',
+  boardSweepLarge: 'rgba(94, 178, 255, 0.22)',
+  boardSweepSmall: 'rgba(86, 171, 255, 0.16)',
+  previewBoardBg: 'rgba(4, 17, 71, 0.68)',
+  previewBoardSecondaryBorder: 'rgba(81, 145, 255, 0.07)',
+  previewCellBg: 'rgba(7, 31, 96, 0.28)',
+  sliderTrack: 'rgba(110, 210, 255, 0.45)',
+  sliderNodeBg: 'rgba(174, 194, 255, 0.72)',
+  sliderNodeActiveBg: 'rgba(255, 219, 105, 0.92)',
+  sliderNodeActiveGlow: 'rgba(255, 211, 104, 0.75)',
+  sliderNodeInnerBg: 'rgba(12, 18, 71, 0.7)',
+  sliderNodeInnerActiveBg: 'rgba(255, 255, 255, 0.7)',
+  modalPanelBorder: 'rgba(100, 223, 255, 0.44)',
+  modalPanelBg: 'rgba(9, 39, 101, 0.66)',
+  modalHintPillBorder: 'rgba(145, 161, 255, 0.28)',
+  modalHintPillBg: 'rgba(16, 20, 72, 0.5)',
+  modalHintText: 'rgba(230, 240, 255, 0.84)',
 };
 
 export const spacing = {
@@ -48,6 +70,10 @@ export const radii = {
 };
 
 export const typography = {
+  family: {
+    display: Platform.OS === 'ios' ? 'Space Grotesk' : 'SpaceGrotesk-Bold',
+    body: Platform.OS === 'ios' ? 'Inter' : 'Inter-Regular',
+  },
   weight: {
     medium: '500' as const,
     semibold: '600' as const,
