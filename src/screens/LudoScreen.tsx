@@ -578,7 +578,7 @@ const LudoScreen = ({
       }
 
       if (nextStatus === 'FINISHED') {
-        playSound('ludo_place');
+        playSound('win');
         triggerBlast(7.5, 7.5, ['🎉', '🏆', '⭐', '✨', '🔥', '👑', '🥳', '💥'], ludoColors[getPlayerColorName(player)]);
         await new Promise<void>(resolve => setTimeout(() => resolve(), 850));
       }
@@ -675,7 +675,7 @@ const LudoScreen = ({
       const clearedAll = currentTokens.every(t => t.status === 'FINISHED');
       if (clearedAll) {
         setWinner(player);
-        playSound('win');
+        playSound('xwin');
 
         // Massive firework blast sequence on victory!
         const playerHexColor = ludoColors[getPlayerColorName(player)];
@@ -1391,7 +1391,7 @@ const LudoScreen = ({
               </View>
 
               <View style={styles.headerRight}>
-                 <Pressable
+                <Pressable
                   onPress={() => {
                     playSound('tap');
                     setShowStatsModal(true);
