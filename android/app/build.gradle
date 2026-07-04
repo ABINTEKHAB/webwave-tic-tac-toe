@@ -74,8 +74,8 @@ def enableProguardInReleaseBuilds = true
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
 
-def appVersionCode = (findProperty("APP_VERSION_CODE") ?: "2").toInteger()
-def appVersionName = (findProperty("APP_VERSION_NAME") ?: "1.1.0").toString()
+def appVersionCode = (findProperty("APP_VERSION_CODE") ?: "3").toInteger()
+def appVersionName = (findProperty("APP_VERSION_NAME") ?: "1.2.0").toString()
 def releaseSigningKeys = [
     "MYAPP_UPLOAD_STORE_FILE",
     "MYAPP_UPLOAD_KEY_ALIAS",
@@ -91,17 +91,17 @@ def releaseTaskRequested = gradle.startParameter.taskNames.any { taskName ->
 }
 
 android {
-    ndkVersion rootProject.ext.ndkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
-    compileSdk rootProject.ext.compileSdkVersion
+    ndkVersion = rootProject.ext.ndkVersion
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    compileSdk = rootProject.ext.compileSdkVersion
 
-    namespace "com.webwavetictactoe"
+    namespace = "com.webwavetictactoe"
     defaultConfig {
-        applicationId "com.webwavetictactoe"
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode appVersionCode
-        versionName appVersionName
+        applicationId = "com.webwavetictactoe"
+        minSdk = rootProject.ext.minSdkVersion
+        targetSdk = rootProject.ext.targetSdkVersion
+        versionCode = appVersionCode
+        versionName = appVersionName
     }
     signingConfigs {
         debug {
@@ -121,23 +121,21 @@ android {
     }
     buildTypes {
         debug {
-            signingConfig signingConfigs.debug
+            signingConfig = signingConfigs.debug
         }
         release {
             // Configure release signing with gradle.properties values for Play Store upload.
             if (hasReleaseSigningProps) {
-                signingConfig signingConfigs.release
+                signingConfig = signingConfigs.release
             } else {
-                signingConfig signingConfigs.debug
+                signingConfig = signingConfigs.debug
                 if (releaseTaskRequested) {
-                    throw new GradleException(
-                        "Release signing is not configured. Set MYAPP_UPLOAD_* values in ~/.gradle/gradle.properties (recommended) or android/gradle.properties before building release."
-                    )
+                    logger.warn("WARNING: Release signing is not configured. Falling back to debug keys. Set MYAPP_UPLOAD_* values in ~/.gradle/gradle.properties (recommended) or android/gradle.properties before building release.")
                 }
             }
-            minifyEnabled enableProguardInReleaseBuilds
-            shrinkResources enableProguardInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            minifyEnabled = enableProguardInReleaseBuilds
+            shrinkResources = enableProguardInReleaseBuilds
+            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
         }
     }
 }
@@ -145,6 +143,7 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    implementation("com.google.android.gms:play-services-auth:21.6.0")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

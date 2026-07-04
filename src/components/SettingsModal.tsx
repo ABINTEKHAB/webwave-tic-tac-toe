@@ -1,21 +1,84 @@
-import React, { useMemo } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Icon from '@react-native-vector-icons/ionicons';
 import { useTheme } from '../theme/ThemeContext';
-import { ThemeName, themes } from '../theme/themes';
 import { radii, spacing, typography } from '../theme/tokens';
+
+interface CustomSwitchProps {
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+  activeColor: string;
+  inactiveColor: string;
+  thumbColorActive: string;
+  thumbColorInactive: string;
+}
+
+const CustomSwitch = ({
+  value,
+  onValueChange,
+  activeColor,
+  inactiveColor,
+  thumbColorActive,
+  thumbColorInactive,
+}: CustomSwitchProps) => {
+  const animatedValue = useRef(new Animated.Value(value ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: value ? 1 : 0,
+      duration: 180,
+      useNativeDriver: false,
+    }).start();
+  }, [value]);
+
+  const translateX = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, 22],
+  });
+
+  const backgroundColor = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [inactiveColor, activeColor],
+  });
+
+  return (
+    <Pressable onPress={() => onValueChange(!value)} android_disableSound={true}>
+      <Animated.View
+        style={{
+          width: 46,
+          height: 26,
+          borderRadius: 13,
+          backgroundColor,
+          padding: 2,
+          justifyContent: 'center',
+        }}
+      >
+        <Animated.View
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            backgroundColor: value ? thumbColorActive : thumbColorInactive,
+            transform: [{ translateX }],
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.2,
+            shadowRadius: 1.5,
+            elevation: 2,
+          }}
+        />
+      </Animated.View>
+    </Pressable>
+  );
+};
 
 interface SettingsModalProps {
   visible: boolean;
   onClose: () => void;
   soundEnabled: boolean;
   vibrationEnabled: boolean;
-  bgmEnabled: boolean;
-  isAdFree: boolean;
-  onToggleSound: () => void;
-  onToggleVibration: () => void;
-  onToggleBgm: () => void;
-  onToggleAdFree: () => void;
+  onToggleSound: (value: boolean) => void;
+  onToggleVibration: (value: boolean) => void;
   onResetMatch: () => void;
   onOpenPrivacyPolicy: () => void;
   onOpenPrivacyOptions: () => void;
@@ -29,12 +92,8 @@ const SettingsModal = ({
   onClose,
   soundEnabled,
   vibrationEnabled,
-  bgmEnabled,
-  isAdFree,
   onToggleSound,
   onToggleVibration,
-  onToggleBgm,
-  onToggleAdFree,
   onResetMatch,
   onOpenPrivacyPolicy,
   onOpenPrivacyOptions,
@@ -42,7 +101,7 @@ const SettingsModal = ({
   contentWidth,
   settingsTitleSize,
 }: SettingsModalProps) => {
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
   const { colors, shadows } = theme;
 
   const styles = useMemo(() => getStyles(colors, shadows), [colors, shadows]);
@@ -54,10 +113,11 @@ const SettingsModal = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.settingsBackdrop} onPress={onClose}>
+      <Pressable style={styles.settingsBackdrop} onPress={onClose} android_disableSound={true}>
         <Pressable
           style={[styles.settingsCard, { width: Math.min(contentWidth, 360) }]}
-          onPress={() => {}}
+          onPress={() => { }}
+          android_disableSound={true}
         >
           <View style={styles.settingsHeaderRow}>
             <Text style={[styles.settingsTitle, { fontSize: settingsTitleSize }]}>GAME SETTINGS</Text>
@@ -66,6 +126,7 @@ const SettingsModal = ({
               accessibilityRole="button"
               accessibilityLabel="Close game settings"
               style={({ pressed }) => [styles.settingsCloseBtn, pressed && styles.settingsCloseBtnPressed]}
+              android_disableSound={true}
             >
               <Icon name="close" size={20} color={colors.textPrimary} />
             </Pressable>
@@ -91,38 +152,16 @@ const SettingsModal = ({
                     <Text style={styles.settingHint}>Move, win, draw and tap sounds</Text>
                   </View>
                 </View>
-                <Switch
+                <CustomSwitch
                   value={soundEnabled}
                   onValueChange={onToggleSound}
-                  thumbColor={soundEnabled ? colors.cyanBright : '#b7c8df'}
-                  trackColor={{
-                    false: 'rgba(153, 174, 206, 0.38)',
-                    true: colors.cyanBorder,
-                  }}
+                  activeColor={colors.cyanBorder}
+                  inactiveColor="rgba(153, 174, 206, 0.38)"
+                  thumbColorActive={colors.cyanBright}
+                  thumbColorInactive="#b7c8df"
                 />
               </View>
 
-              {/* BGM Toggle */}
-              <View style={styles.settingRow}>
-                <View style={styles.settingLabelRow}>
-                  <View style={styles.settingIconWrap}>
-                    <Icon name="musical-notes-outline" size={16} color={colors.cyanPrimary} />
-                  </View>
-                  <View style={styles.settingTextWrap}>
-                    <Text style={styles.settingLabel}>Background Music</Text>
-                    <Text style={styles.settingHint}>Ambient retro-wave music loop</Text>
-                  </View>
-                </View>
-                <Switch
-                  value={bgmEnabled}
-                  onValueChange={onToggleBgm}
-                  thumbColor={bgmEnabled ? colors.cyanBright : '#b7c8df'}
-                  trackColor={{
-                    false: 'rgba(153, 174, 206, 0.38)',
-                    true: colors.cyanBorder,
-                  }}
-                />
-              </View>
 
               {/* Vibration Toggle */}
               <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
@@ -135,53 +174,18 @@ const SettingsModal = ({
                     <Text style={styles.settingHint}>Tap and round-result haptics</Text>
                   </View>
                 </View>
-                <Switch
+                <CustomSwitch
                   value={vibrationEnabled}
                   onValueChange={onToggleVibration}
-                  thumbColor={vibrationEnabled ? colors.textPrimary : '#c7cde2'}
-                  trackColor={{
-                    false: 'rgba(153, 174, 206, 0.38)',
-                    true: colors.pinkBorder,
-                  }}
+                  activeColor={colors.pinkBorder}
+                  inactiveColor="rgba(153, 174, 206, 0.38)"
+                  thumbColorActive={colors.textPrimary}
+                  thumbColorInactive="#c7cde2"
                 />
               </View>
             </View>
 
-            {/* VISUAL ENGINE */}
-            <View style={styles.sectionHeader}>
-              <Icon name="eye-outline" size={14} color={colors.pinkPrimary} />
-              <Text style={styles.sectionTitleText}>VISUAL ENGINE</Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <View style={styles.themeSection}>
-                <Text style={styles.themeTitle}>ACTIVE THEME</Text>
-                <View style={styles.themePickerRow}>
-                  {(Object.keys(themes) as ThemeName[]).map(name => {
-                    const isSelected = theme.name === name;
-                    const activeThemeColors = themes[name].colors;
-                    return (
-                      <Pressable
-                        key={name}
-                        onPress={() => setTheme(name)}
-                        style={[
-                          styles.themeOption,
-                          { borderColor: isSelected ? colors.cyanPrimary : 'rgba(255, 255, 255, 0.12)' },
-                          isSelected && styles.themeOptionActive,
-                        ]}
-                      >
-                        <View style={styles.themeDotRow}>
-                          <View style={[styles.themeDot, { backgroundColor: activeThemeColors.cyanPrimary }]} />
-                          <View style={[styles.themeDot, { backgroundColor: activeThemeColors.pinkPrimary }]} />
-                        </View>
-                        <Text style={[styles.themeOptionText, isSelected && { color: colors.cyanPrimary }]}>
-                          {themes[name].label.split(' ')[0]}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            </View>
+
 
             {/* SYSTEM NODES */}
             <View style={styles.sectionHeader}>
@@ -189,27 +193,7 @@ const SettingsModal = ({
               <Text style={styles.sectionTitleText}>SYSTEM NODES</Text>
             </View>
             <View style={styles.sectionContainer}>
-              {/* Remove Ads Toggle */}
-              <View style={styles.settingRow}>
-                <View style={styles.settingLabelRow}>
-                  <View style={styles.settingIconWrap}>
-                    <Icon name="star-outline" size={16} color={colors.cyanPrimary} />
-                  </View>
-                  <View style={styles.settingTextWrap}>
-                    <Text style={styles.settingLabel}>Ad-Free Mode</Text>
-                    <Text style={styles.settingHint}>Simulate IAP to remove all ads</Text>
-                  </View>
-                </View>
-                <Switch
-                  value={isAdFree}
-                  onValueChange={onToggleAdFree}
-                  thumbColor={isAdFree ? colors.cyanBright : '#b7c8df'}
-                  trackColor={{
-                    false: 'rgba(153, 174, 206, 0.38)',
-                    true: colors.cyanBorder,
-                  }}
-                />
-              </View>
+
 
               {/* Privacy Policy */}
               <Pressable
@@ -217,6 +201,7 @@ const SettingsModal = ({
                 accessibilityRole="button"
                 accessibilityLabel="Open privacy policy website page"
                 style={({ pressed }) => [styles.settingsPolicyBtn, pressed && styles.settingsResetBtnPressed]}
+                android_disableSound={true}
               >
                 <Icon name="document-text-outline" size={18} color={colors.cyanPrimary} />
                 <Text style={styles.settingsPolicyText}>PRIVACY POLICY</Text>
@@ -229,6 +214,7 @@ const SettingsModal = ({
                   accessibilityRole="button"
                   accessibilityLabel="Manage ad consent and privacy choices"
                   style={({ pressed }) => [styles.settingsPrivacyBtn, pressed && styles.settingsResetBtnPressed]}
+                  android_disableSound={true}
                 >
                   <Icon name="shield-checkmark-outline" size={18} color={colors.pinkPrimary} />
                   <Text style={styles.settingsPrivacyText}>MANAGE AD CONSENT</Text>
@@ -242,6 +228,7 @@ const SettingsModal = ({
               accessibilityRole="button"
               accessibilityLabel="Reset score and start a new match"
               style={({ pressed }) => [styles.settingsResetBtn, pressed && styles.settingsResetBtnPressed]}
+              android_disableSound={true}
             >
               <Icon name="refresh-circle-outline" size={19} color={colors.cyanPrimary} />
               <Text style={styles.settingsResetText}>RESET MATCH</Text>
@@ -279,17 +266,17 @@ const getStyles = (colors: any, shadows: any) =>
     },
     settingsTitle: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       letterSpacing: typography.tracking.normal,
       textShadowColor: colors.glowPrimary,
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 8,
+      fontFamily: typography.family.black,
     },
     settingsSubtitle: {
       color: colors.textSecondary,
-      fontWeight: typography.weight.medium,
       fontSize: typography.size.xs - 1,
       marginBottom: spacing.sm,
+      fontFamily: typography.family.medium,
     },
     settingsCloseBtn: {
       width: 30,
@@ -316,12 +303,12 @@ const getStyles = (colors: any, shadows: any) =>
     },
     sectionTitleText: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       fontSize: 10,
       letterSpacing: typography.tracking.wide,
       textShadowColor: colors.glowPrimary,
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 4,
+      fontFamily: typography.family.black,
     },
     sectionContainer: {
       borderRadius: radii.lg,
@@ -360,56 +347,16 @@ const getStyles = (colors: any, shadows: any) =>
     },
     settingLabel: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.bold,
       fontSize: typography.size.sm,
+      fontFamily: typography.family.bold,
     },
     settingHint: {
       color: colors.textSecondary,
       fontSize: 9,
       marginTop: 2,
+      fontFamily: typography.family.regular,
     },
-    themeSection: {
-      paddingVertical: spacing.xs,
-    },
-    themeTitle: {
-      color: colors.textPrimary,
-      fontWeight: typography.weight.bold,
-      fontSize: typography.size.xs,
-      letterSpacing: typography.tracking.wide,
-      marginBottom: spacing.xs,
-    },
-    themePickerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: spacing.xs,
-    },
-    themeOption: {
-      flex: 1,
-      borderRadius: radii.md,
-      borderWidth: 1.5,
-      paddingVertical: spacing.xs,
-      alignItems: 'center',
-      backgroundColor: colors.cardSurfaceSoft,
-    },
-    themeOptionActive: {
-      backgroundColor: colors.glowPrimary,
-      ...shadows.cyanSoft,
-    },
-    themeOptionText: {
-      color: colors.textSecondary,
-      fontWeight: typography.weight.bold,
-      fontSize: 10,
-      marginTop: 4,
-    },
-    themeDotRow: {
-      flexDirection: 'row',
-      gap: 4,
-    },
-    themeDot: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
-    },
+
     settingsPolicyBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -420,9 +367,9 @@ const getStyles = (colors: any, shadows: any) =>
     },
     settingsPolicyText: {
       color: colors.textAccent,
-      fontWeight: typography.weight.bold,
       fontSize: typography.size.xs,
       letterSpacing: typography.tracking.normal,
+      fontFamily: typography.family.bold,
     },
     settingsPrivacyBtn: {
       flexDirection: 'row',
@@ -432,9 +379,9 @@ const getStyles = (colors: any, shadows: any) =>
     },
     settingsPrivacyText: {
       color: colors.pinkPrimary,
-      fontWeight: typography.weight.bold,
       fontSize: typography.size.xs,
       letterSpacing: typography.tracking.normal,
+      fontFamily: typography.family.bold,
     },
     settingsResetBtn: {
       flexDirection: 'row',
@@ -450,9 +397,9 @@ const getStyles = (colors: any, shadows: any) =>
     },
     settingsResetText: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       fontSize: typography.size.sm,
       letterSpacing: typography.tracking.wide,
+      fontFamily: typography.family.black,
     },
     settingsResetBtnPressed: {
       opacity: 0.82,

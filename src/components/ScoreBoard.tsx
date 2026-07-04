@@ -19,166 +19,6 @@ interface ScoreBoardProps {
   dense?: boolean;
 }
 
-interface SideProps {
-  symbol: Mark;
-  label: string;
-  active: boolean;
-  tone: 'cyan' | 'pink';
-  dense: boolean;
-  sideHeight: number;
-  markSize: number;
-  ringSize: number;
-  ringBorderWidth: number;
-  strokeWidth: number;
-  strokeHeight: number;
-  labelFontSize: number;
-  colors: any;
-}
-
-interface NeonMarkProps {
-  symbol: Mark;
-  tone: 'cyan' | 'pink';
-  active: boolean;
-  markSize: number;
-  ringSize: number;
-  ringBorderWidth: number;
-  strokeWidth: number;
-  strokeHeight: number;
-  colors: any;
-}
-
-const NeonMark = ({
-  symbol,
-  active,
-  markSize,
-  ringSize,
-  ringBorderWidth,
-  strokeWidth,
-  strokeHeight,
-  colors,
-}: NeonMarkProps) => {
-  const styles = useMemo(() => getStyles(colors, {}), [colors]);
-
-  if (symbol === 'O') {
-    const outerSize = Math.round(ringSize * 1.18);
-    const glowSize = Math.round(ringSize * 1.08);
-    const outerBorderWidth = Math.max(ringBorderWidth + 4, Math.round(ringBorderWidth * 1.5));
-    const glowBorderWidth = Math.max(ringBorderWidth + 2, Math.round(ringBorderWidth * 1.25));
-
-    return (
-      <View style={[styles.topORingWrap, { width: outerSize, height: outerSize }, active && styles.topMarkActive]}>
-        <View
-          style={[
-            styles.topORingBase,
-            {
-              width: outerSize,
-              height: outerSize,
-              borderRadius: outerSize / 2,
-              borderWidth: outerBorderWidth,
-            },
-            styles.topORingOuter,
-          ]}
-        />
-        <View
-          style={[
-            styles.topORingBase,
-            {
-              width: glowSize,
-              height: glowSize,
-              borderRadius: glowSize / 2,
-              borderWidth: glowBorderWidth,
-            },
-            styles.topORingGlow,
-          ]}
-        />
-        <View
-          style={[
-            styles.topORingBase,
-            {
-              width: ringSize,
-              height: ringSize,
-              borderRadius: ringSize / 2,
-              borderWidth: ringBorderWidth,
-            },
-            styles.topORingCore,
-          ]}
-        />
-      </View>
-    );
-  }
-
-  const outerWidth = Math.round(strokeWidth * 1.16);
-  const glowWidth = Math.round(strokeWidth * 1.08);
-  const outerHeight = strokeHeight + 6;
-  const glowHeight = strokeHeight + 3;
-
-  return (
-    <View style={[styles.topXWrap, { width: markSize, height: markSize }, active && styles.topMarkActive]}>
-      <View style={[styles.topXStroke, styles.topXStrokeOne, { width: outerWidth, height: outerHeight, borderRadius: outerHeight }, styles.topXStrokeOuter]} />
-      <View style={[styles.topXStroke, styles.topXStrokeTwo, { width: outerWidth, height: outerHeight, borderRadius: outerHeight }, styles.topXStrokeOuter]} />
-      <View style={[styles.topXStroke, styles.topXStrokeOne, { width: glowWidth, height: glowHeight, borderRadius: glowHeight }, styles.topXStrokeGlow]} />
-      <View style={[styles.topXStroke, styles.topXStrokeTwo, { width: glowWidth, height: glowHeight, borderRadius: glowHeight }, styles.topXStrokeGlow]} />
-      <View style={[styles.topXStroke, styles.topXStrokeOne, { width: strokeWidth, height: strokeHeight, borderRadius: strokeHeight }, styles.topXStrokeCore]} />
-      <View style={[styles.topXStroke, styles.topXStrokeTwo, { width: strokeWidth, height: strokeHeight, borderRadius: strokeHeight }, styles.topXStrokeCore]} />
-    </View>
-  );
-};
-
-const ScoreSide = ({
-  symbol,
-  label,
-  active,
-  tone,
-  dense,
-  sideHeight,
-  markSize,
-  ringSize,
-  ringBorderWidth,
-  strokeWidth,
-  strokeHeight,
-  labelFontSize,
-  colors,
-}: SideProps) => {
-  const styles = useMemo(() => getStyles(colors, {}), [colors]);
-
-  return (
-    <View
-      style={[
-        styles.sideWrap,
-        dense && styles.sideWrapDense,
-        { minHeight: sideHeight },
-        active && styles.sideWrapActive,
-        tone === 'pink' && styles.sideWrapPink,
-        active && tone === 'pink' && styles.sideWrapPinkActive,
-      ]}
-    >
-      <View style={[styles.sideMarkArea, dense && styles.sideMarkAreaDense]}>
-        <NeonMark
-          symbol={symbol}
-          tone={tone}
-          active={active}
-          markSize={markSize}
-          ringSize={ringSize}
-          ringBorderWidth={ringBorderWidth}
-          strokeWidth={strokeWidth}
-          strokeHeight={strokeHeight}
-          colors={colors}
-        />
-      </View>
-      <Text
-        style={[
-          styles.sideLabel,
-          tone === 'pink' ? styles.sideLabelPink : styles.sideLabelCyan,
-          dense && styles.sideLabelDense,
-          { fontSize: labelFontSize },
-        ]}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-};
-
 const ScoreBoard = ({
   score,
   mode,
@@ -194,106 +34,61 @@ const ScoreBoard = ({
   const { theme } = useTheme();
   const { colors, shadows } = theme;
 
-  const ringMin = dense ? 48 : compact ? 56 : 76;
-  const ringMax = dense ? 84 : compact ? 94 : 118;
-  const xMin = dense ? 46 : compact ? 52 : 72;
-  const xMax = dense ? 86 : compact ? 98 : 124;
-  const boardBasedRing = Math.round(referenceCellSize * 0.58);
-  const boardBasedX = Math.round(referenceCellSize * 0.62);
-  const ringSize = Math.max(ringMin, Math.min(ringMax, boardBasedRing));
-  const ringBorderWidth = dense ? 7 : compact ? 8 : 10;
-  const strokeWidth = Math.max(xMin, Math.min(xMax, boardBasedX));
-  const markSize = strokeWidth;
-  const strokeHeight = dense ? 7 : compact ? 8 : 11;
-
-  const sideHeight = dense
-    ? Math.max(scaleSize(82, width), ringSize + 22)
-    : compact
-    ? Math.max(scaleSize(96, width), ringSize + 28)
-    : Math.max(scaleSize(136, width), ringSize + 44);
-
-  const labelFontSize = dense
-    ? Math.max(9, scaleSize(10, width))
-    : compact
-    ? Math.max(10, scaleSize(10, width))
-    : Math.max(12, scaleSize(12, width));
-
-  const vsFontSize = dense
-    ? Math.max(20, scaleSize(22, width))
-    : compact
-    ? Math.max(22, scaleSize(25, width))
-    : Math.max(28, scaleSize(34, width));
-
-  const metaFontSize = dense
-    ? Math.max(9, scaleSize(9, width))
-    : compact
-    ? Math.max(9, scaleSize(10, width))
-    : Math.max(11, scaleSize(12, width));
-
   const leftSymbol: Mark = mode === 'PVAI' ? humanMark : 'O';
   const rightSymbol: Mark = mode === 'PVAI' ? aiMark : 'X';
   const roundRunning = winner === null;
   const leftActive = roundRunning && currentTurn === leftSymbol;
   const rightActive = roundRunning && currentTurn === rightSymbol;
 
-  const leftOwner = mode === 'PVAI' ? 'PLAYER' : 'PLAYER O';
-  const rightOwner = mode === 'PVAI' ? 'AI' : 'PLAYER X';
-  const xOwner = mode === 'PVAI' ? (aiMark === 'X' ? 'AI' : 'YOU') : 'X';
-  const oOwner = mode === 'PVAI' ? (aiMark === 'O' ? 'AI' : 'YOU') : 'O';
+  const leftLabelText = mode === 'PVAI' ? 'YOU' : 'O';
+  const rightLabelText = mode === 'PVAI' ? 'AI' : 'X';
+  const leftScoreVal = leftSymbol === 'X' ? score.x : score.o;
+  const rightScoreVal = rightSymbol === 'X' ? score.x : score.o;
 
   const styles = useMemo(() => getStyles(colors, shadows), [colors, shadows]);
 
   return (
     <View style={[styles.wrapper, compact && styles.wrapperCompact, dense && styles.wrapperDense]}>
-      <View style={[styles.duelRow, compact && styles.duelRowCompact, dense && styles.duelRowDense]}>
-        <ScoreSide
-          symbol={leftSymbol}
-          label={leftOwner}
-          active={leftActive}
-          tone="cyan"
-          dense={dense}
-          sideHeight={sideHeight}
-          markSize={markSize}
-          ringSize={ringSize}
-          ringBorderWidth={ringBorderWidth}
-          strokeWidth={strokeWidth}
-          strokeHeight={strokeHeight}
-          labelFontSize={labelFontSize}
-          colors={colors}
-        />
-        <View style={[styles.vsWrap, dense && styles.vsWrapDense]}>
-          <Text style={[styles.vsText, { fontSize: vsFontSize }]}>VS</Text>
+      <View style={styles.scoreRow}>
+        {/* Left Score Box (YOU) */}
+        <View
+          style={[
+            styles.scoreBox,
+            styles.scoreBoxLeft,
+            leftActive && styles.scoreBoxLeftActive,
+            compact && styles.scoreBoxCompact,
+            dense && styles.scoreBoxDense,
+          ]}
+        >
+          <Text style={styles.scoreLabel}>{leftLabelText}</Text>
+          <Text style={[styles.scoreVal, { color: colors.cyanPrimary }]}>{leftScoreVal}</Text>
         </View>
-        <ScoreSide
-          symbol={rightSymbol}
-          label={rightOwner}
-          active={rightActive}
-          tone="pink"
-          dense={dense}
-          sideHeight={sideHeight}
-          markSize={markSize}
-          ringSize={ringSize}
-          ringBorderWidth={ringBorderWidth}
-          strokeWidth={strokeWidth}
-          strokeHeight={strokeHeight}
-          labelFontSize={labelFontSize}
-          colors={colors}
-        />
-      </View>
 
-      <View style={[styles.metaRow, compact && styles.metaRowCompact, dense && styles.metaRowDense]}>
-        <View style={[styles.metaPill, compact && styles.metaPillCompact, dense && styles.metaPillDense]}>
-          <Text style={[styles.metaText, { fontSize: metaFontSize }]}>
-            {xOwner} {score.x}
-          </Text>
+        {/* Middle Score Box (DRAW) */}
+        <View
+          style={[
+            styles.scoreBox,
+            styles.scoreBoxMiddle,
+            compact && styles.scoreBoxCompact,
+            dense && styles.scoreBoxDense,
+          ]}
+        >
+          <Text style={styles.scoreLabel}>DRAW</Text>
+          <Text style={[styles.scoreVal, { color: colors.warning }]}>{score.draws}</Text>
         </View>
-        <View style={[styles.metaPill, compact && styles.metaPillCompact, dense && styles.metaPillDense]}>
-          <Text style={[styles.metaText, { fontSize: metaFontSize }]}>DRAW {score.draws}</Text>
-        </View>
-        <View style={[styles.metaPill, compact && styles.metaPillCompact, dense && styles.metaPillDense]}>
-          <Text style={[styles.metaText, { fontSize: metaFontSize }]}>
-            {oOwner} {score.o}
-          </Text>
+
+        {/* Right Score Box (AI / P2) */}
+        <View
+          style={[
+            styles.scoreBox,
+            styles.scoreBoxRight,
+            rightActive && styles.scoreBoxRightActive,
+            compact && styles.scoreBoxCompact,
+            dense && styles.scoreBoxDense,
+          ]}
+        >
+          <Text style={styles.scoreLabel}>{rightLabelText}</Text>
+          <Text style={[styles.scoreVal, { color: colors.pinkPrimary }]}>{rightScoreVal}</Text>
         </View>
       </View>
     </View>
@@ -306,183 +101,78 @@ const getStyles = (colors: any, shadows: any) =>
       width: '100%',
       maxWidth: 540,
       alignSelf: 'center',
-      paddingTop: spacing.xs / 2,
+      paddingTop: spacing.xs,
       paddingBottom: spacing.sm,
     },
     wrapperCompact: {
-      paddingTop: 2,
+      paddingTop: 4,
       paddingBottom: spacing.xs,
     },
     wrapperDense: {
-      paddingTop: 0,
+      paddingTop: 2,
       paddingBottom: 2,
     },
-    duelRow: {
+    scoreRow: {
       flexDirection: 'row',
-      alignItems: 'center',
       justifyContent: 'space-between',
+      gap: spacing.sm,
+      width: '100%',
       paddingHorizontal: spacing.xs,
     },
-    duelRowCompact: {
-      paddingHorizontal: 4,
-    },
-    duelRowDense: {
-      paddingHorizontal: 2,
-    },
-    sideWrap: {
-      width: '35%',
-      borderRadius: radii.xl,
+    scoreBox: {
+      flex: 1,
+      borderRadius: radii.md,
       borderWidth: 1.5,
-      borderColor: colors.cyanBorder,
       backgroundColor: colors.cardSurfaceSoft,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowOpacity: 0,
-      shadowRadius: 0,
-      elevation: 0,
-      position: 'relative',
-      overflow: 'hidden',
+      paddingVertical: spacing.sm,
+      minHeight: 64,
     },
-    sideWrapDense: {
-      borderRadius: radii.lg,
-    },
-    sideWrapPink: {
-      borderColor: colors.pinkBorder,
-      shadowOpacity: 0,
-      shadowRadius: 0,
-      elevation: 0,
-    },
-    sideWrapActive: {
-      backgroundColor: colors.cardSurface,
-      shadowOpacity: 0,
-      shadowRadius: 0,
-      elevation: 0,
-    },
-    sideWrapPinkActive: {
-      backgroundColor: colors.cardSurfaceAlt,
-    },
-    topMarkActive: {
-      transform: [{ scale: 1.04 }],
-    },
-    topXWrap: {
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    topXStroke: {
-      position: 'absolute',
-    },
-    topXStrokeOne: {
-      transform: [{ rotate: '45deg' }],
-    },
-    topXStrokeTwo: {
-      transform: [{ rotate: '-45deg' }],
-    },
-    topXStrokeOuter: {
-      backgroundColor: colors.markXOuter,
-    },
-    topXStrokeGlow: {
-      backgroundColor: colors.markXGlow,
-    },
-    topXStrokeCore: {
-      backgroundColor: colors.markCore,
-    },
-    topORingWrap: {
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    topORingBase: {
-      position: 'absolute',
-    },
-    sideMarkArea: {
-      ...StyleSheet.absoluteFillObject,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingBottom: 10,
-    },
-    sideMarkAreaDense: {
-      paddingBottom: 8,
-    },
-    topORingOuter: {
-      borderColor: colors.markOOuter,
-    },
-    topORingGlow: {
-      borderColor: colors.markOGlow,
-    },
-    topORingCore: {
-      borderColor: colors.markCore,
-    },
-    sideLabel: {
-      position: 'absolute',
-      bottom: 2,
-      fontWeight: typography.weight.heavy,
-      letterSpacing: typography.tracking.normal,
-      textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: 9,
-    },
-    sideLabelCyan: {
-      color: colors.cyanPrimary,
-      textShadowColor: colors.cyanGlow,
-    },
-    sideLabelPink: {
-      color: colors.pinkPrimary,
-      textShadowColor: colors.pinkGlow,
-    },
-    sideLabelDense: {
-      bottom: 1,
-    },
-    vsWrap: {
-      width: '18%',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    vsWrapDense: {
-      width: '16%',
-    },
-    vsText: {
-      color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
-      letterSpacing: typography.tracking.xwide,
-      textShadowColor: colors.cyanGlow,
-      textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: 12,
-    },
-    metaRow: {
-      marginTop: spacing.sm,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: spacing.xs,
-    },
-    metaRowCompact: {
-      marginTop: 6,
-      gap: 6,
-    },
-    metaRowDense: {
-      marginTop: 4,
-      gap: 4,
-    },
-    metaPill: {
-      flex: 1,
-      borderRadius: radii.sm + 1,
-      borderWidth: 1.2,
-      borderColor: colors.cyanBorder,
-      backgroundColor: colors.cardSurface,
+    scoreBoxCompact: {
       paddingVertical: spacing.xs,
-      alignItems: 'center',
-      overflow: 'hidden',
-      ...shadows.cyanSoft,
-      ...(Platform.OS === 'android' ? { elevation: 0 } : {}),
+      minHeight: 56,
+      borderRadius: radii.sm,
     },
-    metaPillCompact: {
-      paddingVertical: 5,
-    },
-    metaPillDense: {
+    scoreBoxDense: {
       paddingVertical: 4,
-      borderWidth: 1,
+      minHeight: 48,
+      borderWidth: 1.2,
     },
-    metaText: {
-      color: colors.textAccent,
-      fontWeight: typography.weight.heavy,
-      letterSpacing: typography.tracking.normal,
+    scoreBoxLeft: {
+      borderColor: 'rgba(44, 236, 255, 0.22)',
+    },
+    scoreBoxMiddle: {
+      borderColor: 'rgba(255, 203, 85, 0.22)',
+    },
+    scoreBoxRight: {
+      borderColor: 'rgba(244, 108, 255, 0.22)',
+    },
+    scoreBoxLeftActive: {
+      borderColor: colors.cyanPrimary,
+      backgroundColor: colors.cardSurface,
+      ...shadows.cyanSoft,
+      ...(Platform.OS === 'android' ? { elevation: 2 } : {}),
+    },
+    scoreBoxRightActive: {
+      borderColor: colors.pinkPrimary,
+      backgroundColor: colors.cardSurfaceAlt,
+      ...shadows.pinkSoft,
+      ...(Platform.OS === 'android' ? { elevation: 2 } : {}),
+    },
+    scoreLabel: {
+      color: colors.textSecondary,
+      fontSize: 10,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      marginBottom: 3,
+      fontFamily: typography.family.black,
+    },
+    scoreVal: {
+      fontSize: 18,
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 8,
+      fontFamily: typography.family.black,
     },
   });
 

@@ -4,5 +4,5 @@ module.exports = {
       packageName: 'com.webwavetictactoe',
     },
   },
-  assets: [],
+  assets: ['./src/assets/fonts/'],
 };

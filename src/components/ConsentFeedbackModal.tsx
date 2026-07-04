@@ -100,21 +100,21 @@ const getStyles = (colors: any, shadows: any) =>
     consentFeedbackTitle: {
       flex: 1,
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       fontSize: typography.size.md,
       letterSpacing: typography.tracking.tight,
       textShadowColor: colors.glowSecondary,
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 8,
+      fontFamily: typography.family.black,
     },
     consentFeedbackMessage: {
       color: colors.textSecondary,
-      fontWeight: typography.weight.medium,
       fontSize: typography.size.sm,
       lineHeight: 20,
       textAlign: 'left',
       width: '100%',
       marginBottom: spacing.lg,
+      fontFamily: typography.family.medium,
     },
     consentFeedbackOkBtn: {
       width: '100%',
@@ -129,9 +129,9 @@ const getStyles = (colors: any, shadows: any) =>
     },
     consentFeedbackOkText: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       letterSpacing: typography.tracking.wide,
       fontSize: typography.size.md,
+      fontFamily: typography.family.black,
     },
     settingsResetBtnPressed: {
       opacity: 0.82,

@@ -5,6 +5,7 @@ import { Player } from '../types';
 import { scaleSize } from '../theme/responsive';
 import { radii, spacing, typography } from '../theme/tokens';
 import { useTheme } from '../theme/ThemeContext';
+import { hexToRgba } from '../theme/themes';
 
 interface GameOverModalProps {
   visible: boolean;
@@ -222,35 +223,35 @@ const getStyles = (colors: any, shadows: any) =>
       alignItems: 'center',
     },
     title: {
-      fontWeight: typography.weight.heavy,
       letterSpacing: typography.tracking.wide,
       textAlign: 'center',
+      fontFamily: typography.family.black,
     },
     titleVictory: {
       color: colors.cyanPrimary,
-      textShadowColor: colors.cyanGlow,
+      textShadowColor: hexToRgba(colors.cyanGlow, 0.45),
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 10,
     },
     titleDefeat: {
       color: colors.pinkPrimary,
-      textShadowColor: colors.pinkGlow,
+      textShadowColor: hexToRgba(colors.pinkGlow, 0.45),
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 10,
     },
     titleDraw: {
       color: colors.warning,
-      textShadowColor: colors.warning,
+      textShadowColor: hexToRgba(colors.warning, 0.45),
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 10,
     },
     subtitle: {
       color: colors.textSecondary,
-      fontWeight: typography.weight.semibold,
       fontSize: 10,
       letterSpacing: 1.2,
       marginTop: 4,
       textTransform: 'uppercase',
+      fontFamily: typography.family.semibold,
     },
     visualContainer: {
       alignItems: 'center',
@@ -332,37 +333,37 @@ const getStyles = (colors: any, shadows: any) =>
       alignItems: 'center',
     },
     winnerText: {
-      fontWeight: typography.weight.heavy,
       marginBottom: spacing.xs,
       letterSpacing: typography.tracking.wide,
+      fontFamily: typography.family.black,
     },
     xColor: {
       color: colors.pinkPrimary,
-      textShadowColor: colors.pinkGlow,
+      textShadowColor: hexToRgba(colors.pinkGlow, 0.45),
       textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: 14,
+      textShadowRadius: 10,
     },
     oColor: {
       color: colors.cyanPrimary,
-      textShadowColor: colors.cyanGlow,
+      textShadowColor: hexToRgba(colors.cyanGlow, 0.45),
       textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: 14,
+      textShadowRadius: 10,
     },
     drawText: {
       color: colors.warning,
-      fontWeight: typography.weight.heavy,
       letterSpacing: typography.tracking.wide,
       marginBottom: spacing.xs,
-      textShadowColor: colors.warning,
+      textShadowColor: hexToRgba(colors.warning, 0.45),
       textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: 12,
+      textShadowRadius: 10,
+      fontFamily: typography.family.black,
     },
     resultText: {
       color: colors.textSecondary,
-      fontWeight: typography.weight.bold,
       letterSpacing: typography.tracking.normal,
       textTransform: 'uppercase',
       fontSize: 12,
+      fontFamily: typography.family.bold,
     },
     tipCard: {
       width: '100%',
@@ -381,15 +382,15 @@ const getStyles = (colors: any, shadows: any) =>
     },
     tipTitle: {
       color: colors.warning,
-      fontWeight: typography.weight.heavy,
       fontSize: 9,
       letterSpacing: 0.8,
+      fontFamily: typography.family.black,
     },
     tipText: {
       color: colors.textSecondary,
       fontSize: 10,
       lineHeight: 14,
-      fontWeight: typography.weight.semibold,
+      fontFamily: typography.family.semibold,
     },
     buttonRow: {
       width: '100%',
@@ -424,12 +425,12 @@ const getStyles = (colors: any, shadows: any) =>
     },
     btnText: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       fontSize: typography.size.sm,
       letterSpacing: typography.tracking.wide,
       textShadowColor: colors.glowPrimary,
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 8,
+      fontFamily: typography.family.black,
     },
   });
 

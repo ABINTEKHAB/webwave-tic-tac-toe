@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   BackHandler,
+  ImageBackground,
   Modal,
   Platform,
   Pressable,
@@ -11,6 +12,8 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+
+const BACKGROUND_IMG = require('../assets/images/bgr_1.png');
 import Icon from '@react-native-vector-icons/ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AdBanner from '../components/AdBanner';
@@ -19,10 +22,14 @@ import { getContentWidth, scaleSize } from '../theme/responsive';
 import { radii, spacing, typography } from '../theme/tokens';
 import { useTheme } from '../theme/ThemeContext';
 import { CareerStats, getCareerStats, resetCareerStats } from '../services/stats';
+import { useGameSounds } from '../hooks/useGameSounds';
+import { hexToRgba } from '../theme/themes';
 
 interface LevelSelectionScreenProps {
   adsReady: boolean;
   onStartGame: (mode: GameMode, difficulty?: Difficulty) => void;
+  onGoBack?: () => void;
+  soundEnabled: boolean;
 }
 
 type PreviewSymbol = 'O' | 'X';
@@ -76,11 +83,18 @@ const PreviewNeonMark = ({ symbol, size, colors, emphasized = false }: PreviewMa
   );
 };
 
-const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenProps) => {
+const LevelSelectionScreen = ({
+  adsReady,
+  onStartGame,
+  onGoBack,
+  soundEnabled,
+}: LevelSelectionScreenProps) => {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { colors, shadows } = theme;
+
+  const { playSound } = useGameSounds(soundEnabled);
 
   const contentWidth = getContentWidth(width, 16, 560);
   const compact = height < 760;
@@ -122,11 +136,15 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
         setShowStatsModal(false);
         return true;
       }
+      if (onGoBack) {
+        onGoBack();
+        return true;
+      }
       return false;
     });
 
     return () => backSubscription.remove();
-  }, [showDifficultyModal, showStatsModal]);
+  }, [showDifficultyModal, showStatsModal, onGoBack]);
 
   const handlePvAI = () => setShowDifficultyModal(true);
   const handlePvp = () => onStartGame('PVP');
@@ -138,6 +156,7 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
   const handleResetStats = async () => {
     const fresh = await resetCareerStats();
     setCareerStats(fresh);
+    setMenuStats(fresh);
   };
 
   const styles = useMemo(() => getStyles(colors, shadows), [colors, shadows]);
@@ -147,6 +166,7 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
       <StatusBar barStyle="light-content" backgroundColor={colors.backgroundAlt} translucent={false} hidden={false} />
 
       <View style={styles.container}>
+        <ImageBackground source={BACKGROUND_IMG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
         <View pointerEvents="none" style={styles.topGlow} />
         <View pointerEvents="none" style={styles.midGlow} />
         <View pointerEvents="none" style={styles.bottomGlow} />
@@ -156,15 +176,35 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
 
         {/* Top Header Bar for Stats & Streak */}
         <View style={[styles.topHeaderBar, { width: contentWidth }]}>
-          <View style={styles.profileBadge}>
-            <Icon name="person-circle-outline" size={20} color={colors.pinkPrimary} />
-            <Text style={styles.profileBadgeText}>Streak: {menuStats?.currentStreak || 0} 🔥</Text>
+          <View style={styles.headerLeftCol}>
+            {onGoBack && (
+              <Pressable
+                onPress={() => {
+                  playSound('tap');
+                  onGoBack();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Go back to game selection"
+                style={({ pressed }) => [styles.backBtn, pressed && styles.backBtnPressed]}
+                android_disableSound={true}
+              >
+                <Icon name="arrow-back" size={18} color={colors.cyanPrimary} />
+              </Pressable>
+            )}
+            <View style={styles.profileBadge}>
+              <Icon name="person-circle-outline" size={20} color={colors.pinkPrimary} />
+              <Text style={styles.profileBadgeText}>Streak: {menuStats?.currentStreak || 0} 🔥</Text>
+            </View>
           </View>
           <Pressable
-            onPress={() => setShowStatsModal(true)}
+            onPress={() => {
+              playSound('tap');
+              setShowStatsModal(true);
+            }}
             accessibilityRole="button"
             accessibilityLabel="View Career Stats"
             style={({ pressed }) => [styles.statsBtn, pressed && styles.statsBtnPressed]}
+            android_disableSound={true}
           >
             <Icon name="trophy-outline" size={18} color={colors.cyanPrimary} />
             <Text style={styles.statsBtnText}>STATS</Text>
@@ -217,29 +257,6 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
             </View>
 
             <View style={styles.menuStack}>
-              {/* PvP Card */}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Play against another player (PVP)"
-                style={({ pressed }) => [
-                  styles.modeCard,
-                  styles.modeCardCyan,
-                  pressed && styles.modeCardPressed,
-                ]}
-                onPress={handlePvp}
-              >
-                <View style={styles.modeCardContent}>
-                  <View style={[styles.modeCardIconOrb, styles.modeCardIconOrbCyan]}>
-                    <Icon name="people-outline" size={22} color={colors.cyanPrimary} />
-                  </View>
-                  <View style={styles.modeCardTextWrap}>
-                    <Text style={[styles.modeCardTitle, { fontSize: buttonLabelSize }]}>COSMIC DUEL (PVP)</Text>
-                    <Text style={styles.modeCardDesc}>Play with a localized soul or synchronize globally.</Text>
-                  </View>
-                  <Icon name="chevron-forward" size={18} color={colors.cyanPrimary} />
-                </View>
-              </Pressable>
-
               {/* PvBot Card */}
               <Pressable
                 accessibilityRole="button"
@@ -249,17 +266,48 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
                   styles.modeCardPink,
                   pressed && styles.modeCardPressed,
                 ]}
-                onPress={handlePvAI}
+                onPress={() => {
+                  playSound('tap');
+                  handlePvAI();
+                }}
+                android_disableSound={true}
               >
                 <View style={styles.modeCardContent}>
                   <View style={[styles.modeCardIconOrb, styles.modeCardIconOrbPink]}>
                     <Icon name="hardware-chip-outline" size={22} color={colors.pinkPrimary} />
                   </View>
                   <View style={styles.modeCardTextWrap}>
-                    <Text style={[styles.modeCardTitle, { fontSize: buttonLabelSize, color: colors.pinkPrimary }]}>ASTRAL INTELLIGENCE</Text>
-                    <Text style={styles.modeCardDesc}>Test your alignment limits against adaptive bot nodes.</Text>
+                    <Text style={[styles.modeCardTitle, { fontSize: buttonLabelSize, color: colors.pinkPrimary }]}>YOU VS AI</Text>
+                    <Text style={styles.modeCardDesc}>Play against our smart computer opponent.</Text>
                   </View>
                   <Icon name="chevron-forward" size={18} color={colors.pinkPrimary} />
+                </View>
+              </Pressable>
+
+              {/* PvP Card */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Play against another player (PVP)"
+                style={({ pressed }) => [
+                  styles.modeCard,
+                  styles.modeCardCyan,
+                  pressed && styles.modeCardPressed,
+                ]}
+                onPress={() => {
+                  playSound('tap');
+                  handlePvp();
+                }}
+                android_disableSound={true}
+              >
+                <View style={styles.modeCardContent}>
+                  <View style={[styles.modeCardIconOrb, styles.modeCardIconOrbCyan]}>
+                    <Icon name="people-outline" size={22} color={colors.cyanPrimary} />
+                  </View>
+                  <View style={styles.modeCardTextWrap}>
+                    <Text style={[styles.modeCardTitle, { fontSize: buttonLabelSize }]}>PLAYER VS PLAYER</Text>
+                    <Text style={styles.modeCardDesc}>Play with a friend on the same device.</Text>
+                  </View>
+                  <Icon name="chevron-forward" size={18} color={colors.cyanPrimary} />
                 </View>
               </Pressable>
             </View>
@@ -297,7 +345,13 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
               </View>
             )}
 
-            {adsReady ? <AdBanner compact /> : null}
+            {/* {adsReady ? <AdBanner compact /> : null} */}
+
+              {adsReady && (
+          <View style={styles.adWrap}>
+            <AdBanner compact />
+          </View>
+        )}
           </View>
         </ScrollView>
 
@@ -308,8 +362,19 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
           animationType="fade"
           onRequestClose={() => setShowDifficultyModal(false)}
         >
-          <Pressable style={styles.modalBackdrop} onPress={() => setShowDifficultyModal(false)}>
-            <Pressable style={[styles.modalCard, { width: Math.min(contentWidth, 380) }]} onPress={() => {}}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => {
+              playSound('tap');
+              setShowDifficultyModal(false);
+            }}
+            android_disableSound={true}
+          >
+            <Pressable
+              style={[styles.modalCard, { width: Math.min(contentWidth, 380) }]}
+              onPress={() => {}}
+              android_disableSound={true}
+            >
               <View style={styles.modalTopRow}>
                 <View style={styles.modalHeaderTag}>
                   <Icon name="sparkles-outline" size={16} color={colors.pinkPrimary} />
@@ -319,8 +384,12 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Close difficulty modal"
-                  onPress={() => setShowDifficultyModal(false)}
+                  onPress={() => {
+                    playSound('tap');
+                    setShowDifficultyModal(false);
+                  }}
                   style={({ pressed }) => [styles.modalCloseButton, pressed && styles.modalCloseButtonPressed]}
+                  android_disableSound={true}
                 >
                   <Icon name="close" size={18} color={colors.backgroundAlt} />
                 </Pressable>
@@ -343,8 +412,12 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
                         key={level}
                         accessibilityRole="button"
                         accessibilityLabel={`Set difficulty ${level}`}
-                        onPress={() => setSelectedDifficulty(level)}
+                        onPress={() => {
+                          playSound('tap');
+                          setSelectedDifficulty(level);
+                        }}
                         style={styles.sliderNodeHitArea}
+                        android_disableSound={true}
                       >
                         <View style={[styles.sliderNodeOuter, active && styles.sliderNodeOuterActive]}>
                           <View style={[styles.sliderNodeInner, active && styles.sliderNodeInnerActive]} />
@@ -358,8 +431,12 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Start player versus AI game"
-                  onPress={confirmPvAI}
+                  onPress={() => {
+                    playSound('tap');
+                    confirmPvAI();
+                  }}
                   style={({ pressed }) => [styles.modalStartButton, pressed && styles.modeCardPressed]}
+                  android_disableSound={true}
                 >
                   <Text style={styles.modalStartButtonText}>START</Text>
                 </Pressable>
@@ -379,8 +456,19 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
           animationType="fade"
           onRequestClose={() => setShowStatsModal(false)}
         >
-          <Pressable style={styles.modalBackdrop} onPress={() => setShowStatsModal(false)}>
-            <Pressable style={[styles.modalCard, { width: Math.min(contentWidth, 380) }]} onPress={() => {}}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => {
+              playSound('tap');
+              setShowStatsModal(false);
+            }}
+            android_disableSound={true}
+          >
+            <Pressable
+              style={[styles.modalCard, { width: Math.min(contentWidth, 380), maxHeight: '80%' }]}
+              onPress={() => {}}
+              android_disableSound={true}
+            >
               <View style={styles.modalTopRow}>
                 <View style={styles.modalHeaderTag}>
                   <Icon name="trophy-outline" size={16} color={colors.pinkPrimary} />
@@ -390,8 +478,12 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Close stats modal"
-                  onPress={() => setShowStatsModal(false)}
+                  onPress={() => {
+                    playSound('tap');
+                    setShowStatsModal(false);
+                  }}
                   style={({ pressed }) => [styles.modalCloseButton, pressed && styles.modalCloseButtonPressed]}
+                  android_disableSound={true}
                 >
                   <Icon name="close" size={18} color={colors.backgroundAlt} />
                 </Pressable>
@@ -402,7 +494,7 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
               <View pointerEvents="none" style={styles.modalFlare} />
 
               {careerStats ? (
-                <View style={styles.statsContent}>
+                <ScrollView style={{ width: '100%' }} contentContainerStyle={styles.statsContent} showsVerticalScrollIndicator={false}>
                   {/* Streak Card */}
                   <View style={styles.streakGrid}>
                     <View style={styles.streakBox}>
@@ -415,24 +507,66 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
                     </View>
                   </View>
 
-                  {/* PVAI Stats */}
-                  <Text style={styles.statsSectionTitle}>VS COMP (AI)</Text>
+                  {/* PVAI EASY Stats */}
+                  <Text style={styles.statsSectionTitle}>VS AI - EASY</Text>
                   <View style={styles.statsCard}>
                     <View style={styles.statLine}>
                       <Text style={styles.statText}>Played</Text>
-                      <Text style={styles.statVal}>{careerStats.pvaiPlayed}</Text>
+                      <Text style={styles.statVal}>{careerStats.aiEasyPlayed || 0}</Text>
                     </View>
                     <View style={styles.statLine}>
                       <Text style={styles.statText}>Wins</Text>
-                      <Text style={[styles.statVal, { color: colors.cyanPrimary }]}>{careerStats.pvaiWinsUser}</Text>
+                      <Text style={[styles.statVal, { color: colors.cyanPrimary }]}>{careerStats.aiEasyWinsUser || 0}</Text>
                     </View>
                     <View style={styles.statLine}>
                       <Text style={styles.statText}>Losses</Text>
-                      <Text style={[styles.statVal, { color: colors.pinkPrimary }]}>{careerStats.pvaiWinsAi}</Text>
+                      <Text style={[styles.statVal, { color: colors.pinkPrimary }]}>{careerStats.aiEasyWinsAi || 0}</Text>
                     </View>
                     <View style={styles.statLine}>
                       <Text style={styles.statText}>Draws</Text>
-                      <Text style={styles.statVal}>{careerStats.pvaiDraws}</Text>
+                      <Text style={styles.statVal}>{careerStats.aiEasyDraws || 0}</Text>
+                    </View>
+                  </View>
+
+                  {/* PVAI MEDIUM Stats */}
+                  <Text style={styles.statsSectionTitle}>VS AI - MEDIUM</Text>
+                  <View style={styles.statsCard}>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Played</Text>
+                      <Text style={styles.statVal}>{careerStats.aiMediumPlayed || 0}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Wins</Text>
+                      <Text style={[styles.statVal, { color: colors.cyanPrimary }]}>{careerStats.aiMediumWinsUser || 0}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Losses</Text>
+                      <Text style={[styles.statVal, { color: colors.pinkPrimary }]}>{careerStats.aiMediumWinsAi || 0}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Draws</Text>
+                      <Text style={styles.statVal}>{careerStats.aiMediumDraws || 0}</Text>
+                    </View>
+                  </View>
+
+                  {/* PVAI HARD Stats */}
+                  <Text style={styles.statsSectionTitle}>VS AI - HARD</Text>
+                  <View style={styles.statsCard}>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Played</Text>
+                      <Text style={styles.statVal}>{careerStats.aiHardPlayed || 0}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Wins</Text>
+                      <Text style={[styles.statVal, { color: colors.cyanPrimary }]}>{careerStats.aiHardWinsUser || 0}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Losses</Text>
+                      <Text style={[styles.statVal, { color: colors.pinkPrimary }]}>{careerStats.aiHardWinsAi || 0}</Text>
+                    </View>
+                    <View style={styles.statLine}>
+                      <Text style={styles.statText}>Draws</Text>
+                      <Text style={styles.statVal}>{careerStats.aiHardDraws || 0}</Text>
                     </View>
                   </View>
 
@@ -459,13 +593,17 @@ const LevelSelectionScreen = ({ adsReady, onStartGame }: LevelSelectionScreenPro
 
                   {/* Reset Button */}
                   <Pressable
-                    onPress={handleResetStats}
+                    onPress={() => {
+                      playSound('tap');
+                      handleResetStats();
+                    }}
                     style={({ pressed }) => [styles.resetStatsBtn, pressed && styles.statsBtnPressed]}
+                    android_disableSound={true}
                   >
                     <Icon name="trash-outline" size={16} color={colors.pinkPrimary} />
                     <Text style={styles.resetStatsText}>RESET STATS</Text>
                   </Pressable>
-                </View>
+                </ScrollView>
               ) : (
                 <Text style={styles.modalSubtitle}>Loading statistics...</Text>
               )}
@@ -495,6 +633,26 @@ const getStyles = (colors: any, shadows: any) =>
       paddingTop: spacing.sm,
       zIndex: 10,
     },
+    headerLeftCol: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    backBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: radii.md,
+      borderWidth: 1.2,
+      borderColor: colors.cyanBorder,
+      backgroundColor: colors.cardSurfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadows.cyanSoft,
+    },
+    backBtnPressed: {
+      opacity: 0.8,
+      transform: [{ scale: 0.95 }],
+    },
     profileBadge: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -509,8 +667,8 @@ const getStyles = (colors: any, shadows: any) =>
     },
     profileBadgeText: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.bold,
       fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
     },
     statsBtn: {
       flexDirection: 'row',
@@ -526,8 +684,8 @@ const getStyles = (colors: any, shadows: any) =>
     },
     statsBtnText: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.bold,
       fontSize: typography.size.xs,
+      fontFamily: typography.family.bold,
     },
     statsBtnPressed: {
       opacity: 0.8,
@@ -614,18 +772,18 @@ const getStyles = (colors: any, shadows: any) =>
     },
     title: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       letterSpacing: typography.tracking.xwide,
       textShadowColor: colors.glowPrimary,
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 10,
+      fontFamily: typography.family.black,
     },
     subtitle: {
       marginTop: 4,
       color: colors.textSecondary,
-      fontWeight: typography.weight.semibold,
       letterSpacing: typography.tracking.normal,
       textAlign: 'center',
+      fontFamily: typography.family.semibold,
     },
     heroFlare: {
       marginTop: spacing.sm,
@@ -655,9 +813,9 @@ const getStyles = (colors: any, shadows: any) =>
     },
     dailyMissionText: {
       color: colors.warning,
-      fontWeight: typography.weight.semibold,
       fontSize: typography.size.xs,
       flex: 1,
+      fontFamily: typography.family.semibold,
     },
     previewWrap: {
       alignItems: 'center',
@@ -823,17 +981,17 @@ const getStyles = (colors: any, shadows: any) =>
     },
     modeCardTitle: {
       color: colors.cyanPrimary,
-      fontWeight: typography.weight.heavy,
       letterSpacing: typography.tracking.wide,
-      textShadowColor: colors.cyanGlow,
+      textShadowColor: hexToRgba(colors.cyanGlow, 0.4),
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 7,
+      fontFamily: typography.family.black,
     },
     modeCardDesc: {
       color: colors.textSecondary,
       fontSize: 10,
       marginTop: 2,
-      fontWeight: typography.weight.semibold,
+      fontFamily: typography.family.semibold,
     },
     dashboardCard: {
       width: '100%',
@@ -847,13 +1005,13 @@ const getStyles = (colors: any, shadows: any) =>
     },
     dashboardTitle: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       fontSize: 11,
       letterSpacing: typography.tracking.wide,
       textAlign: 'center',
       textShadowColor: colors.glowPrimary,
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 6,
+      fontFamily: typography.family.black,
     },
     dashboardDivider: {
       height: 1,
@@ -869,19 +1027,25 @@ const getStyles = (colors: any, shadows: any) =>
     },
     dashboardVal: {
       color: colors.cyanPrimary,
-      fontWeight: typography.weight.heavy,
       fontSize: 20,
-      textShadowColor: colors.cyanGlow,
+      textShadowColor: hexToRgba(colors.cyanGlow, 0.4),
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 6,
+      fontFamily: typography.family.black,
     },
     dashboardLabel: {
       color: colors.textSecondary,
       fontSize: 10,
-      fontWeight: typography.weight.bold,
       marginTop: 2,
       letterSpacing: 0.5,
+      fontFamily: typography.family.bold,
     },
+      adWrap: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 0 : 4,
+  },
     modalBackdrop: {
       flex: 1,
       backgroundColor: colors.overlayDark,
@@ -916,9 +1080,9 @@ const getStyles = (colors: any, shadows: any) =>
     },
     modalHeaderTagText: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.bold,
       fontSize: typography.size.xs,
       letterSpacing: typography.tracking.tight,
+      fontFamily: typography.family.bold,
     },
     modalCloseButton: {
       width: 34,
@@ -937,17 +1101,17 @@ const getStyles = (colors: any, shadows: any) =>
     },
     modalTitle: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       letterSpacing: typography.tracking.normal,
-      textShadowColor: colors.cyanGlow,
+      textShadowColor: hexToRgba(colors.cyanGlow, 0.4),
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 8,
+      fontFamily: typography.family.body,
     },
     modalSubtitle: {
       marginTop: 6,
       color: colors.textSecondary,
-      fontWeight: typography.weight.medium,
       letterSpacing: typography.tracking.tight,
+      fontFamily: typography.family.medium,
     },
     modalFlare: {
       marginTop: spacing.sm,
@@ -971,21 +1135,21 @@ const getStyles = (colors: any, shadows: any) =>
     },
     modalPanelLabel: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.semibold,
       textAlign: 'center',
       letterSpacing: typography.tracking.tight,
       fontSize: typography.size.md,
+      fontFamily: typography.family.semibold,
     },
     modalDifficultyValue: {
       marginTop: spacing.xs,
       marginBottom: spacing.md,
       color: colors.warning,
-      fontWeight: typography.weight.heavy,
       textAlign: 'center',
       letterSpacing: typography.tracking.wide,
-      textShadowColor: colors.warning,
+      textShadowColor: hexToRgba(colors.warning, 0.4),
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 8,
+      fontFamily: typography.family.black,
     },
     sliderWrap: {
       width: '100%',
@@ -1040,9 +1204,9 @@ const getStyles = (colors: any, shadows: any) =>
     sliderLabel: {
       marginTop: spacing.xs,
       color: colors.textSecondary,
-      fontWeight: typography.weight.bold,
       fontSize: typography.size.xs,
       letterSpacing: typography.tracking.tight,
+      fontFamily: typography.family.bold,
     },
     sliderLabelActive: {
       color: colors.textPrimary,
@@ -1060,9 +1224,9 @@ const getStyles = (colors: any, shadows: any) =>
     },
     modalStartButtonText: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       letterSpacing: typography.tracking.wide,
       fontSize: typography.size.lg,
+      fontFamily: typography.family.black,
     },
     modalHintPill: {
       marginTop: spacing.md,
@@ -1077,10 +1241,10 @@ const getStyles = (colors: any, shadows: any) =>
     },
     modalHintText: {
       color: colors.modalHintText,
-      fontWeight: typography.weight.medium,
       letterSpacing: typography.tracking.tight,
       textAlign: 'center',
       fontSize: typography.size.sm,
+      fontFamily: typography.family.medium,
     },
     statsContent: {
       width: '100%',
@@ -1102,25 +1266,25 @@ const getStyles = (colors: any, shadows: any) =>
     },
     streakNum: {
       color: colors.cyanPrimary,
-      fontWeight: typography.weight.heavy,
       fontSize: 22,
-      textShadowColor: colors.cyanGlow,
+      textShadowColor: hexToRgba(colors.cyanGlow, 0.4),
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 8,
+      fontFamily: typography.family.black,
     },
     streakLabel: {
       color: colors.textSecondary,
       fontSize: 10,
-      fontWeight: typography.weight.bold,
       marginTop: 2,
+      fontFamily: typography.family.bold,
     },
     statsSectionTitle: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       fontSize: 10,
       letterSpacing: 1,
       marginTop: spacing.xs,
       marginBottom: 6,
+      fontFamily: typography.family.black,
     },
     statsCard: {
       borderRadius: radii.lg,
@@ -1139,12 +1303,12 @@ const getStyles = (colors: any, shadows: any) =>
     statText: {
       color: colors.textSecondary,
       fontSize: typography.size.sm,
-      fontWeight: typography.weight.semibold,
+      fontFamily: typography.family.semibold,
     },
     statVal: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.bold,
       fontSize: typography.size.sm,
+      fontFamily: typography.family.bold,
     },
     resetStatsBtn: {
       flexDirection: 'row',
@@ -1160,9 +1324,9 @@ const getStyles = (colors: any, shadows: any) =>
     },
     resetStatsText: {
       color: colors.pinkPrimary,
-      fontWeight: typography.weight.heavy,
       fontSize: 11,
       letterSpacing: 0.8,
+      fontFamily: typography.family.black,
     },
   });
 

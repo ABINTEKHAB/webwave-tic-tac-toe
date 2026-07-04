@@ -26,7 +26,7 @@ const SplashPortal = ({ onFinish }: SplashPortalProps) => {
       xOffset: new Animated.Value(Math.random() * 40 - 20),
       opacity: Math.random() * 0.6 + 0.2,
       scale: Math.random() * 0.8 + 0.4,
-      color: Math.random() > 0.5 ? '#00f5ff' : '#ff007f',
+      color: Math.random() > 0.5 ? '#00f5ff' : '#ff75c3',
     }));
   }, []);
 
@@ -89,7 +89,7 @@ const SplashPortal = ({ onFinish }: SplashPortalProps) => {
     // 4. Loading Bar progress
     Animated.timing(loadingProgress, {
       toValue: 1,
-      duration: 1400,
+      duration: 2500,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start(() => {
@@ -171,8 +171,8 @@ const SplashPortal = ({ onFinish }: SplashPortalProps) => {
 
       {/* Title block */}
       <View style={styles.titleContainer}>
-        <Text style={styles.titleText}>N E X U S</Text>
-        <Text style={styles.subtitleText}>TIC TAC TOE</Text>
+        <Text style={styles.titleText}>WEBWAVE GLOBAL</Text>
+        <Text style={styles.subtitleText}>GAME PORTAL</Text>
       </View>
 
       {/* horizontal progress loader */}
@@ -180,11 +180,11 @@ const SplashPortal = ({ onFinish }: SplashPortalProps) => {
         <View style={styles.loaderTrack}>
           <Animated.View style={[styles.loaderBar, { width: progressWidth }]} />
         </View>
-        <Text style={styles.loadingStatusText}>Initializing Cosmic Engines...</Text>
+        <Text style={styles.loadingStatusText}>Loading Webwave Games...</Text>
       </View>
 
       {/* Footer Info */}
-      <Text style={styles.footerText}>© 2026 Cosmic Games Co.</Text>
+      <Text style={styles.footerText}>© 2026 Webwave Global</Text>
     </Animated.View>
   );
 };
@@ -223,8 +223,8 @@ const styles = StyleSheet.create({
   portalRingOuter: {
     width: 120,
     height: 120,
-    borderColor: '#ff007f', // nova-magenta
-    shadowColor: '#ff007f',
+    borderColor: '#ff75c3', // nova-magenta
+    shadowColor: '#ff75c3',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.84,
     shadowRadius: 10,
@@ -254,17 +254,15 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   titleText: {
-    fontFamily: typography.family.display,
-    fontSize: 40,
-    fontWeight: typography.weight.heavy,
+    fontFamily: typography.family.black,
+    fontSize: 30,
     color: '#f8f9fa', // starlight-white
-    letterSpacing: 8,
+    letterSpacing: 4,
     textAlign: 'center',
   },
   subtitleText: {
-    fontFamily: typography.family.body,
+    fontFamily: typography.family.semibold,
     fontSize: 12,
-    fontWeight: typography.weight.semibold,
     color: '#9295af', // starlight-dim
     letterSpacing: 6,
     marginTop: 8,
@@ -291,9 +289,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   loadingStatusText: {
-    fontFamily: typography.family.body,
+    fontFamily: typography.family.medium,
     fontSize: 10,
-    fontWeight: typography.weight.medium,
     color: '#9295af',
     letterSpacing: 1.5,
     marginTop: 10,

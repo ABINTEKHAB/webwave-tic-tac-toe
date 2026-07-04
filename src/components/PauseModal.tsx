@@ -3,6 +3,7 @@ import { Animated, Modal, Platform, Pressable, StyleSheet, Text, View, useWindow
 import Icon from '@react-native-vector-icons/ionicons';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, spacing, typography } from '../theme/tokens';
+import { hexToRgba } from '../theme/themes';
 
 interface PauseModalProps {
   visible: boolean;
@@ -84,7 +85,7 @@ const PauseModal = ({
       animationType="none"
       onRequestClose={onResume}
     >
-      <Pressable style={styles.backdrop} onPress={onResume}>
+      <Pressable style={styles.backdrop} onPress={onResume} android_disableSound={true}>
         <Animated.View
           style={[
             styles.card,
@@ -101,8 +102,8 @@ const PauseModal = ({
             <View style={styles.headerIconOrb}>
               <Icon name="pause" size={24} color={colors.cyanPrimary} />
             </View>
-            <Text style={styles.title}>DUEL SUSPENDED</Text>
-            <Text style={styles.subtitle}>Tactical freeze active. Select next vector.</Text>
+            <Text style={styles.title}>GAME PAUSED</Text>
+            <Text style={styles.subtitle}>Game is paused. Select an option to proceed.</Text>
           </View>
 
           <View style={styles.buttonStack}>
@@ -113,9 +114,10 @@ const PauseModal = ({
                 accessibilityRole="button"
                 accessibilityLabel="Resume current game"
                 style={({ pressed }) => [styles.btn, styles.resumeBtn, pressed && styles.pressed]}
+                android_disableSound={true}
               >
                 <Icon name="play" size={18} color={colors.cyanBright} />
-                <Text style={styles.btnText}>RESUME DUEL</Text>
+                <Text style={styles.btnText}>RESUME GAME</Text>
               </Pressable>
             </Animated.View>
 
@@ -126,6 +128,7 @@ const PauseModal = ({
                 accessibilityRole="button"
                 accessibilityLabel="Restart game match"
                 style={({ pressed }) => [styles.btn, styles.restartBtn, pressed && styles.pressed]}
+                android_disableSound={true}
               >
                 <Icon name="refresh" size={18} color={colors.pinkPrimary} />
                 <Text style={styles.btnText}>RESTART MATCH</Text>
@@ -139,6 +142,7 @@ const PauseModal = ({
                 accessibilityRole="button"
                 accessibilityLabel="Exit to main menu"
                 style={({ pressed }) => [styles.btn, styles.exitBtn, pressed && styles.pressed]}
+                android_disableSound={true}
               >
                 <Icon name="home-outline" size={18} color={colors.textSecondary} />
                 <Text style={[styles.btnText, { color: colors.textSecondary }]}>MAIN MENU</Text>
@@ -200,21 +204,21 @@ const getStyles = (colors: any, shadows: any) =>
     },
     title: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       fontSize: typography.size.lg + 2,
       letterSpacing: typography.tracking.wide,
-      textShadowColor: colors.cyanGlow,
+      textShadowColor: hexToRgba(colors.cyanGlow, 0.45),
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 8,
       textAlign: 'center',
       marginTop: spacing.xs,
+      fontFamily: typography.family.black,
     },
     subtitle: {
       color: colors.textSecondary,
-      fontWeight: typography.weight.medium,
       fontSize: typography.size.xs,
       textAlign: 'center',
       marginTop: 4,
+      fontFamily: typography.family.medium,
     },
     buttonStack: {
       width: '100%',
@@ -244,8 +248,8 @@ const getStyles = (colors: any, shadows: any) =>
       ...(Platform.OS === 'android' ? { elevation: 0 } : {}),
     },
     exitBtn: {
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+      borderColor: colors.boardGridLine,
+      backgroundColor: colors.cardSurfaceSoft,
     },
     pressed: {
       opacity: 0.82,
@@ -253,9 +257,9 @@ const getStyles = (colors: any, shadows: any) =>
     },
     btnText: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       fontSize: typography.size.sm,
       letterSpacing: typography.tracking.wide,
+      fontFamily: typography.family.black,
     },
   });
 

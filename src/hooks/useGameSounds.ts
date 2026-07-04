@@ -1,14 +1,38 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { warn } from '../utils/logger';
 import { Image, Platform } from 'react-native';
 import Sound from 'react-native-sound';
 
-export type FeedbackSound = 'move' | 'win' | 'draw' | 'tap';
+export type FeedbackSound =
+  | 'move'
+  | 'omove'
+  | 'xmove'
+  | 'win'
+  | 'owin'
+  | 'xwin'
+  | 'gameover'
+  | 'draw'
+  | 'tap'
+  | 'dice'
+  | 'pour'
+  | 'ludo_eat'
+  | 'ludo_place'
+  | 'ting';
 
 const MOVE_SOUND = require('../assets/sounds/move.wav');
+const OMOVE_SOUND = require('../assets/sounds/omove.wav');
+const XMOVE_SOUND = require('../assets/sounds/xmove.wav');
 const WIN_SOUND = require('../assets/sounds/win.wav');
+const OWIN_SOUND = require('../assets/sounds/Owin.mp3');
+const XWIN_SOUND = require('../assets/sounds/xwin.wav');
+const GAMEOVER_SOUND = require('../assets/sounds/draw_gameover.mp3');
+const TING_SOUND = require('../assets/sounds/ting.wav');
 const DRAW_SOUND = require('../assets/sounds/draw.wav');
-const TAP_SOUND = require('../assets/sounds/tap.wav');
-const BGM_SOUND = require('../assets/sounds/bgm.wav');
+const DICE_SOUND = require('../assets/sounds/dice.wav');
+const POUR_SOUND = require('../assets/sounds/pour.wav');
+const LUDO_EAT_SOUND = require('../assets/sounds/ludo_eat.wav');
+const LUDO_PLACE_SOUND = require('../assets/sounds/ludo_place.wav');
+const TAP_SOUND = require('../assets/sounds/touch.wav');
 
 const resolveSoundPath = (soundAsset: number): string | null => {
   const asset = Image.resolveAssetSource(soundAsset);
@@ -23,7 +47,7 @@ const resolveSoundPath = (soundAsset: number): string | null => {
   return asset.uri;
 };
 
-const createSound = (soundAsset: number): Sound | null => {
+const createSound = (soundAsset: number, name?: string): Sound | null => {
   const soundPath = resolveSoundPath(soundAsset);
   if (!soundPath) {
     return null;
@@ -32,78 +56,63 @@ const createSound = (soundAsset: number): Sound | null => {
   try {
     const clip = new Sound(soundPath, '', error => {
       if (error) {
-        // Fail silently
+        warn(`Failed to load sound ${name || ''}:`, error);
       }
     });
     clip.setVolume(0.95);
     return clip;
-  } catch {
+  } catch (err) {
+    warn(`Failed to create sound instance ${name || ''}:`, err);
     return null;
   }
 };
 
-export const useGameSounds = (soundEnabled: boolean, bgmEnabled: boolean) => {
+export const useGameSounds = (soundEnabled: boolean) => {
   const soundBankRef = useRef<Record<FeedbackSound, Sound | null>>({
     move: null,
+    omove: null,
+    xmove: null,
     win: null,
+    owin: null,
+    xwin: null,
+    gameover: null,
     draw: null,
+    ting: null,
     tap: null,
+    dice: null,
+    pour: null,
+    ludo_eat: null,
+    ludo_place: null,
   });
-  const bgmRef = useRef<Sound | null>(null);
+
 
   useEffect(() => {
     Sound.setCategory('Ambient', true);
 
     const sounds: Record<FeedbackSound, Sound | null> = {
-      move: createSound(MOVE_SOUND),
-      win: createSound(WIN_SOUND),
-      draw: createSound(DRAW_SOUND),
-      tap: createSound(TAP_SOUND),
+      move: createSound(MOVE_SOUND, 'move'),
+      omove: createSound(OMOVE_SOUND, 'omove'),
+      xmove: createSound(XMOVE_SOUND, 'xmove'),
+      win: createSound(WIN_SOUND, 'win'),
+      owin: createSound(OWIN_SOUND, 'owin'),
+      xwin: createSound(XWIN_SOUND, 'xwin'),
+      gameover: createSound(GAMEOVER_SOUND, 'gameover'),
+      draw: createSound(DRAW_SOUND, 'draw'),
+      tap: createSound(TAP_SOUND, 'tap'),
+      ting: createSound(TING_SOUND, 'ting'),
+      dice: createSound(DICE_SOUND, 'dice'),
+      pour: createSound(POUR_SOUND, 'pour'),
+      ludo_eat: createSound(LUDO_EAT_SOUND, 'ludo_eat'),
+      ludo_place: createSound(LUDO_PLACE_SOUND, 'ludo_place'),
     };
     soundBankRef.current = sounds;
 
-    // Load BGM
-    const bgmPath = resolveSoundPath(BGM_SOUND);
-    if (bgmPath) {
-      try {
-        const bgm = new Sound(bgmPath, '', error => {
-          if (!error && bgmRef.current) {
-            bgmRef.current.setNumberOfLoops(-1);
-            bgmRef.current.setVolume(0.4); // Lower volume for background music
-            if (bgmEnabled) {
-              bgmRef.current.play();
-            }
-          }
-        });
-        bgmRef.current = bgm;
-      } catch (e) {
-        // Fail silently
-      }
-    }
-
     return () => {
       Object.values(sounds).forEach(sound => sound?.release());
-      if (bgmRef.current) {
-        bgmRef.current.stop();
-        bgmRef.current.release();
-        bgmRef.current = null;
-      }
     };
   }, []);
 
-  // Update BGM state when BGM setting changes
-  useEffect(() => {
-    const bgm = bgmRef.current;
-    if (!bgm || !bgm.isLoaded()) {
-      return;
-    }
 
-    if (bgmEnabled) {
-      bgm.play();
-    } else {
-      bgm.stop();
-    }
-  }, [bgmEnabled]);
 
   const playSound = useCallback((soundName: FeedbackSound, force = false) => {
     if (!force && !soundEnabled) {

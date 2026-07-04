@@ -64,7 +64,7 @@ export const useGameLayout = (adsReady: boolean, shouldRenderAds: boolean): Game
   );
   const minimumBoard = Math.min(
     boardWidthLimit,
-    ultraCompactLayout ? 282 : boardTightLayout ? 332 : boardCompactLayout ? 316 : 344,
+    ultraCompactLayout ? 230 : boardTightLayout ? 260 : boardCompactLayout ? 270 : 290,
   );
 
   const boardSize = Math.min(preferredBoard, Math.max(boardHeightLimit, minimumBoard));

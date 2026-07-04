@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
+  ImageBackground,
   Linking,
   Platform,
   Pressable,
@@ -10,6 +11,8 @@ import {
   Text,
   View,
 } from 'react-native';
+
+const BACKGROUND_IMG = require('../assets/images/bgr_1.png');
 import { AdsConsent } from 'react-native-google-mobile-ads';
 import { shouldRenderAds } from '../ads/adMobConfig';
 import Icon from '@react-native-vector-icons/ionicons';
@@ -18,13 +21,14 @@ import { useTheme } from '../theme/ThemeContext';
 import { useGameLayout } from '../hooks/useGameLayout';
 import { useGameSounds } from '../hooks/useGameSounds';
 import { useAdMob } from '../hooks/useAdMob';
-import { recordMatchResult } from '../services/stats';
+import { recordMatchResult, getCareerStats, resetStatsForMode } from '../services/stats';
 import AdBanner from '../components/AdBanner';
 import GameOverModal from '../components/GameOverModal';
 import ScoreBoard from '../components/ScoreBoard';
 import Square from '../components/Square';
 import WinningLine from '../components/WinningLine';
 import SettingsModal from '../components/SettingsModal';
+import { hexToRgba } from '../theme/themes';
 import ConsentFeedbackModal from '../components/ConsentFeedbackModal';
 import PauseModal from '../components/PauseModal';
 import { recordCrashlyticsError, triggerCrashlyticsTestCrash } from '../services/firebaseTelemetry';
@@ -39,6 +43,12 @@ interface GameScreenProps {
   adsReady: boolean;
   onGoHome: () => void;
   onRefreshAdsState: () => Promise<void>;
+  settings: {
+    soundEnabled: boolean;
+    vibrationEnabled: boolean;
+    isAdFree: boolean;
+  };
+  onUpdateSetting: (key: 'soundEnabled' | 'vibrationEnabled' | 'isAdFree', value: boolean) => void;
 }
 
 type Mark = Exclude<Player, null>;
@@ -46,7 +56,6 @@ type Mark = Exclude<Player, null>;
 interface GameSettings {
   vibrationEnabled: boolean;
   soundEnabled: boolean;
-  bgmEnabled: boolean;
   isAdFree: boolean;
 }
 
@@ -64,7 +73,6 @@ const SETTINGS_STORAGE_KEY = '@webwave_tic_tac_toe:game_settings';
 const DEFAULT_SETTINGS: GameSettings = {
   vibrationEnabled: true,
   soundEnabled: true,
-  bgmEnabled: true,
   isAdFree: false,
 };
 const DEFAULT_CONSENT_FEEDBACK: ConsentFeedbackState = {
@@ -106,7 +114,6 @@ const parseStoredSettings = (rawSettings: string | null): GameSettings => {
     return {
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : DEFAULT_SETTINGS.soundEnabled,
       vibrationEnabled: typeof parsed.vibrationEnabled === 'boolean' ? parsed.vibrationEnabled : DEFAULT_SETTINGS.vibrationEnabled,
-      bgmEnabled: typeof parsed.bgmEnabled === 'boolean' ? parsed.bgmEnabled : DEFAULT_SETTINGS.bgmEnabled,
       isAdFree: typeof parsed.isAdFree === 'boolean' ? parsed.isAdFree : DEFAULT_SETTINGS.isAdFree,
     };
   } catch {
@@ -114,26 +121,84 @@ const parseStoredSettings = (rawSettings: string | null): GameSettings => {
   }
 };
 
-const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsState }: GameScreenProps) => {
+const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsState, settings, onUpdateSetting }: GameScreenProps) => {
   const { theme } = useTheme();
   const { colors, shadows } = theme;
 
-  const [settingsHydrated, setSettingsHydrated] = useState(false);
-  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
-
   // Layout Hook
-  const layout = useGameLayout(adsReady, !settings.isAdFree);
+  const layout = useGameLayout(adsReady, !settings.isAdFree && shouldRenderAds);
 
   // AdMob Hook
-  const { adVisible, incrementRoundsAndMaybeShowAd, resetRounds } = useAdMob(adsReady, settings.isAdFree);
+  const { adVisible, incrementRoundsAndMaybeShowAd, resetRounds, showInterstitial } = useAdMob(adsReady, settings.isAdFree);
 
   // Sounds Hook
-  const { playSound } = useGameSounds(settings.soundEnabled, settings.bgmEnabled);
+  const { playSound } = useGameSounds(settings.soundEnabled);
 
   const [game, setGame] = useState<GameState>(() => createInitialGameState(getStartingMark(gameMode)));
-  const [score, setScore] = useState<Score>(INITIAL_SCORE);
+  const [history, setHistory] = useState<GameState[]>([]);
   const [showGameOver, setShowGameOver] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [score, setScore] = useState<Score>(INITIAL_SCORE);
+
+  // Load cumulative stats for this difficulty / gameMode
+  useEffect(() => {
+    let active = true;
+    const loadStatsForMode = async () => {
+      try {
+        const stats = await getCareerStats();
+        if (!active) return;
+
+        if (gameMode === 'PVP') {
+          setScore({
+            x: stats.pvpWinsX,
+            o: stats.pvpWinsO,
+            draws: stats.pvpDraws,
+          });
+        } else {
+          if (difficulty === 'Easy') {
+            setScore({
+              o: stats.aiEasyWinsUser,
+              x: stats.aiEasyWinsAi,
+              draws: stats.aiEasyDraws,
+            });
+          } else if (difficulty === 'Medium') {
+            setScore({
+              o: stats.aiMediumWinsUser,
+              x: stats.aiMediumWinsAi,
+              draws: stats.aiMediumDraws,
+            });
+          } else if (difficulty === 'Hard') {
+            setScore({
+              o: stats.aiHardWinsUser,
+              x: stats.aiHardWinsAi,
+              draws: stats.aiHardDraws,
+            });
+          }
+        }
+      } catch (err) {
+        // Fallback
+      }
+    };
+
+    loadStatsForMode();
+    return () => {
+      active = false;
+    };
+  }, [gameMode, difficulty]);
+
+  const handleUndo = () => {
+    if (history.length === 0 || game.winner !== null || isAiTurn) return;
+    playSound('tap');
+    triggerVibration(10);
+
+    const newHistory = [...history];
+    const prevState = newHistory.pop();
+    if (prevState) {
+      showInterstitial();
+      setGame(prevState);
+      setHistory(newHistory);
+    }
+  };
   const [pauseModalVisible, setPauseModalVisible] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15);
   const [consentFeedback, setConsentFeedback] = useState<ConsentFeedbackState>(DEFAULT_CONSENT_FEEDBACK);
@@ -150,37 +215,6 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
     [settings.vibrationEnabled]
   );
 
-  useEffect(() => {
-    let active = true;
-
-    const hydrateSettings = async () => {
-      try {
-        const rawSettings = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY);
-        if (!active) {
-          return;
-        }
-        setSettings(parseStoredSettings(rawSettings));
-      } finally {
-        if (active) {
-          setSettingsHydrated(true);
-        }
-      }
-    };
-
-    hydrateSettings();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!settingsHydrated) {
-      return;
-    }
-    AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)).catch(() => undefined);
-  }, [settings, settingsHydrated]);
-
   const currentTurn: Mark = game.xIsNext ? 'X' : 'O';
   const isAiTurn = gameMode === 'PVAI' && game.winner === null && currentTurn === AI_MARK;
   const leftSymbol: Mark = gameMode === 'PVAI' ? HUMAN_MARK : 'O';
@@ -193,10 +227,9 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
   const feedbackStatusText = useMemo(() => {
     let feedback = [];
     if (settings.soundEnabled) feedback.push('SOUND');
-    if (settings.bgmEnabled) feedback.push('BGM');
     if (settings.vibrationEnabled) feedback.push('VIBRATION');
     return feedback.length > 0 ? `${feedback.join(' + ')} ON` : 'FEEDBACK OFF';
-  }, [settings.soundEnabled, settings.bgmEnabled, settings.vibrationEnabled]);
+  }, [settings.soundEnabled, settings.vibrationEnabled]);
 
   // Reset timer on turn change
   useEffect(() => {
@@ -212,29 +245,8 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          // Time out! Choose random cell
           clearInterval(interval);
-          
-          const emptyCells = game.board
-            .map((val, idx) => (val === null ? idx : null))
-            .filter((val): val is number => val !== null);
-          
-          if (emptyCells.length > 0 && !game.winner) {
-            const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-            setGame(prevGame => {
-              if (prevGame.board[randomCell] || prevGame.winner) {
-                return prevGame;
-              }
-              const turnMark: Mark = prevGame.xIsNext ? 'X' : 'O';
-              if (gameMode === 'PVAI' && turnMark === AI_MARK) {
-                return prevGame;
-              }
-              playSound('move');
-              triggerVibration(15);
-              return buildNextState(prevGame, randomCell, turnMark);
-            });
-          }
-          return 15;
+          return 0;
         }
         return prev - 1;
       });
@@ -253,19 +265,22 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
 
     if (game.winner === 'X') {
       setScore(prev => ({ ...prev, x: prev.x + 1 }));
-      playSound('win');
+      // play X win sound
+      playSound('xwin');
       triggerVibration([0, 40, 30, 40]);
-      recordMatchResult(gameMode, 'X', HUMAN_MARK).catch(() => {});
+      recordMatchResult(gameMode, 'X', HUMAN_MARK, difficulty).catch(() => { });
     } else if (game.winner === 'O') {
       setScore(prev => ({ ...prev, o: prev.o + 1 }));
-      playSound('win');
+      // play O win sound
+      playSound('owin');
       triggerVibration([0, 40, 30, 40]);
-      recordMatchResult(gameMode, 'O', HUMAN_MARK).catch(() => {});
+      recordMatchResult(gameMode, 'O', HUMAN_MARK, difficulty).catch(() => { });
     } else {
       setScore(prev => ({ ...prev, draws: prev.draws + 1 }));
-      playSound('draw');
+      // play draw/gameover sound
+      playSound('gameover');
       triggerVibration(25);
-      recordMatchResult(gameMode, 'Draw', HUMAN_MARK).catch(() => {});
+      recordMatchResult(gameMode, 'Draw', HUMAN_MARK, difficulty).catch(() => { });
     }
 
     if (game.winner === 'Draw' || !game.winningLine) {
@@ -274,7 +289,7 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
     }
 
     setShowGameOver(false);
-  }, [game.winner, game.winningLine, playSound, triggerVibration, gameMode, incrementRoundsAndMaybeShowAd]);
+  }, [game.winner, game.winningLine, playSound, triggerVibration, gameMode, incrementRoundsAndMaybeShowAd, difficulty]);
 
   useEffect(() => {
     if (!isAiTurn) {
@@ -297,7 +312,8 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
           return prevGame;
         }
 
-        playSound('move');
+        // play specific sound for X (AI) move
+        playSound('xmove');
         triggerVibration(12);
         return buildNextState(prevGame, aiMove, AI_MARK);
       });
@@ -344,37 +360,42 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
   const gameOverModalResultText = game.winner === 'Draw' ? 'NO WINNER THIS ROUND' : 'WINNER';
 
   const handlePressSquare = (index: number) => {
-    setGame(prevGame => {
-      if (prevGame.board[index] || prevGame.winner) {
-        return prevGame;
-      }
+    if (game.board[index] || game.winner) return;
 
-      const turnMark: Mark = prevGame.xIsNext ? 'X' : 'O';
-      if (gameMode === 'PVAI' && turnMark === AI_MARK) {
-        return prevGame;
-      }
+    const turnMark: Mark = game.xIsNext ? 'X' : 'O';
+    if (gameMode === 'PVAI' && turnMark === AI_MARK) {
+      return;
+    }
 
-      playSound('move');
-      triggerVibration(15);
-      return buildNextState(prevGame, index, turnMark);
-    });
+    // play specific sound depending on mark
+    playSound(turnMark === 'X' ? 'xmove' : 'omove');
+    triggerVibration(15);
+    setHistory(prev => [...prev, game]);
+    setGame(prevGame => buildNextState(prevGame, index, turnMark));
   };
 
   const resetRound = useCallback(() => {
     playSound('tap');
     triggerVibration(10);
     setGame(createInitialGameState(getStartingMark(gameMode)));
+    setHistory([]);
     setShowGameOver(false);
   }, [gameMode, playSound, triggerVibration]);
 
-  const resetAll = useCallback(() => {
+  const resetAll = useCallback(async () => {
     playSound('tap');
     triggerVibration(10);
+    try {
+      await resetStatsForMode(gameMode, difficulty);
+    } catch (e) {
+      // Fail silent
+    }
     setScore(INITIAL_SCORE);
     setGame(createInitialGameState(getStartingMark(gameMode)));
+    setHistory([]);
     setShowGameOver(false);
     resetRounds();
-  }, [gameMode, playSound, triggerVibration, resetRounds]);
+  }, [gameMode, difficulty, playSound, triggerVibration, resetRounds]);
 
   const handleReplay = () => {
     resetRound();
@@ -512,25 +533,21 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
   };
 
   const handleToggleSound = () => {
-    setSettings(prev => ({ ...prev, soundEnabled: !prev.soundEnabled }));
+    onUpdateSetting('soundEnabled', !settings.soundEnabled);
     playSound('tap', true);
     triggerVibration(10, true);
   };
 
   const handleToggleVibration = () => {
-    setSettings(prev => ({ ...prev, vibrationEnabled: !prev.vibrationEnabled }));
+    onUpdateSetting('vibrationEnabled', !settings.vibrationEnabled);
     triggerVibration(10, true);
     playSound('tap');
   };
 
-  const handleToggleBgm = () => {
-    setSettings(prev => ({ ...prev, bgmEnabled: !prev.bgmEnabled }));
-    triggerVibration(10, true);
-    playSound('tap');
-  };
+
 
   const handleToggleAdFree = () => {
-    setSettings(prev => ({ ...prev, isAdFree: !prev.isAdFree }));
+    onUpdateSetting('isAdFree', !settings.isAdFree);
     triggerVibration(10, true);
     playSound('tap');
   };
@@ -557,6 +574,7 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
         hidden={false}
       />
       <View style={styles.container}>
+        <ImageBackground source={BACKGROUND_IMG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
         <View pointerEvents="none" style={styles.topGlow} />
         <View pointerEvents="none" style={styles.midGlow} />
         <View pointerEvents="none" style={styles.bottomGlow} />
@@ -588,6 +606,7 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
                   { width: layout.iconButtonSize, height: layout.iconButtonSize, borderRadius: layout.iconButtonRadius },
                   pressed && styles.iconBtnPressed,
                 ]}
+                android_disableSound={true}
               >
                 <Icon
                   name={game.winner ? "arrow-back" : "pause"}
@@ -621,6 +640,7 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
                   { width: layout.iconButtonSize, height: layout.iconButtonSize, borderRadius: layout.iconButtonRadius },
                   pressed && styles.iconBtnPressed,
                 ]}
+                android_disableSound={true}
               >
                 <Icon
                   name="settings-outline"
@@ -757,7 +777,7 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
               <Text style={[styles.statusText, { fontSize: layout.statusFontSize }]}>{statusText}</Text>
             </View>
 
-            {/* Replay Action */}
+            {/* Replay & Undo Actions */}
             <View
               style={[
                 styles.bottomActionRow,
@@ -765,6 +785,29 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
                 layout.topTightLayout && styles.bottomActionRowTight,
               ]}
             >
+              {/* Undo Button */}
+              <Pressable
+                onPress={handleUndo}
+                disabled={history.length === 0 || game.winner !== null || isAiTurn}
+                accessibilityRole="button"
+                accessibilityLabel="Undo last move"
+                style={({ pressed }) => [
+                  styles.replayBtn,
+                  {
+                    width: layout.replayButtonSize,
+                    height: layout.replayButtonSize,
+                    borderRadius: layout.replayButtonRadius,
+                    marginRight: spacing.md,
+                    opacity: (history.length === 0 || game.winner !== null || isAiTurn) ? 0.4 : 1,
+                  },
+                  pressed && styles.replayBtnPressed,
+                ]}
+                android_disableSound={true}
+              >
+                <Icon name="arrow-undo-outline" size={layout.replayIconSize - 2} color={colors.pinkPrimary} style={styles.replayIcon} />
+              </Pressable>
+
+              {/* Replay Button */}
               <Pressable
                 onPress={resetRound}
                 accessibilityRole="button"
@@ -778,6 +821,7 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
                   },
                   pressed && styles.replayBtnPressed,
                 ]}
+                android_disableSound={true}
               >
                 <Icon name="refresh" size={layout.replayIconSize} color={colors.cyanBright} style={styles.replayIcon} />
               </Pressable>
@@ -788,10 +832,8 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
         {adVisible && (
           <View
             style={[
-              styles.bannerDock,
-              {
-                paddingBottom: Math.max(layout.bottomSafeSpace, spacing.xs) + 2,
-              },
+              styles.adWrap,
+
             ]}
           >
             <AdBanner compact />
@@ -805,12 +847,8 @@ const GameScreen = ({ gameMode, difficulty, adsReady, onGoHome, onRefreshAdsStat
         onClose={closeSettingsModal}
         soundEnabled={settings.soundEnabled}
         vibrationEnabled={settings.vibrationEnabled}
-        bgmEnabled={settings.bgmEnabled}
-        isAdFree={settings.isAdFree}
         onToggleSound={handleToggleSound}
         onToggleVibration={handleToggleVibration}
-        onToggleBgm={handleToggleBgm}
-        onToggleAdFree={handleToggleAdFree}
         onResetMatch={handleResetFromSettings}
         onOpenPrivacyPolicy={handleOpenPrivacyPolicy}
         onOpenPrivacyOptions={handleOpenPrivacyOptions}
@@ -917,22 +955,22 @@ const getStyles = (colors: any, shadows: any) =>
     },
     headerTitle: {
       color: colors.textPrimary,
-      fontWeight: typography.weight.heavy,
       letterSpacing: typography.tracking.wide,
-      textShadowColor: colors.cyanGlow,
+      textShadowColor: hexToRgba(colors.cyanGlow, 0.45),
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 8,
       textAlign: 'center',
+      fontFamily: typography.family.black,
     },
     headerSubtitle: {
       marginTop: 2,
       color: colors.textSecondary,
-      fontWeight: typography.weight.semibold,
       letterSpacing: typography.tracking.normal,
       textShadowColor: colors.glowPrimary,
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 6,
       textAlign: 'center',
+      fontFamily: typography.family.semibold,
     },
     iconBtn: {
       width: 56,
@@ -1069,12 +1107,12 @@ const getStyles = (colors: any, shadows: any) =>
       height: 30,
     },
     timerText: {
-      fontWeight: typography.weight.heavy,
+      fontFamily: typography.family.black,
     },
     levelText: {
       color: colors.cyanPrimary,
-      fontWeight: typography.weight.heavy,
       letterSpacing: typography.tracking.normal,
+      fontFamily: typography.family.black,
     },
     boardOuter: {
       alignSelf: 'center',
@@ -1155,11 +1193,11 @@ const getStyles = (colors: any, shadows: any) =>
     },
     statusText: {
       color: colors.cyanPrimary,
-      fontWeight: typography.weight.heavy,
       letterSpacing: typography.tracking.wide,
-      textShadowColor: colors.cyanGlow,
+      textShadowColor: hexToRgba(colors.cyanGlow, 0.45),
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 10,
+      fontFamily: typography.family.black,
     },
     bottomActionRow: {
       flexDirection: 'row',
@@ -1198,6 +1236,13 @@ const getStyles = (colors: any, shadows: any) =>
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 0,
     },
+    adWrap: {
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingBottom: Platform.OS === 'ios' ? 0 : 4,
+    },
   });
 
 export default GameScreen;
+

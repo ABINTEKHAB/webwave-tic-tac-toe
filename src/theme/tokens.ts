@@ -71,8 +71,16 @@ export const radii = {
 
 export const typography = {
   family: {
-    display: Platform.OS === 'ios' ? 'Space Grotesk' : 'SpaceGrotesk-Bold',
-    body: Platform.OS === 'ios' ? 'Inter' : 'Inter-Regular',
+    display: 'Lexend-Bold',
+    body: 'Lexend-Regular',
+    thin: 'Lexend-Thin',
+    light: 'Lexend-Light',
+    regular: 'Lexend-Regular',
+    medium: 'Lexend-Medium',
+    semibold: 'Lexend-SemiBold',
+    bold: 'Lexend-Bold',
+    extrabold: 'Lexend-ExtraBold',
+    black: 'Lexend-Black',
   },
   weight: {
     medium: '500' as const,
@@ -100,28 +108,28 @@ export const typography = {
 export const shadows = {
   cyanSoft: {
     shadowColor: colors.cyanGlow,
-    shadowOffset: {width: 0, height: 0},
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.34,
     shadowRadius: 8,
     elevation: 4,
   },
   cyanStrong: {
     shadowColor: colors.cyanGlow,
-    shadowOffset: {width: 0, height: 0},
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.95,
     shadowRadius: 18,
     elevation: 14,
   },
   pinkSoft: {
     shadowColor: colors.pinkGlow,
-    shadowOffset: {width: 0, height: 0},
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4,
     shadowRadius: 9,
     elevation: 6,
   },
   pinkStrong: {
     shadowColor: colors.pinkGlow,
-    shadowOffset: {width: 0, height: 0},
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 18,
     elevation: 12,
