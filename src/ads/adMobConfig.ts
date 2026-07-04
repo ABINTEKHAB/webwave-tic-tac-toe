@@ -1,8 +1,9 @@
-import {TestIds} from 'react-native-google-mobile-ads';
+import { TestIds } from 'react-native-google-mobile-ads';
 
 const PROD_BANNER_UNIT_ID = 'ca-app-pub-9812515008053738/2996940520';
 const PROD_INTERSTITIAL_UNIT_ID = 'ca-app-pub-9812515008053738/7759505559';
-const PROD_REWARDED_UNIT_ID = 'ca-app-pub-9812515008053738/2069273766';
+const PROD_REWARDED_UNIT_ID = 'ca-app-pub-9812515008053738/3215795629';
+// const PROD_REWARDED_UNIT_ID = 'ca-app-pub-9812515008053738/1013173655';
 
 const isPlaceholder = (value: string) => value.includes('xxxxxxxx');
 

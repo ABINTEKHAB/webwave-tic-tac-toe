@@ -31,7 +31,7 @@ import SettingsModal from '../components/SettingsModal';
 import { hexToRgba } from '../theme/themes';
 import ConsentFeedbackModal from '../components/ConsentFeedbackModal';
 import PauseModal from '../components/PauseModal';
-import { recordCrashlyticsError, triggerCrashlyticsTestCrash } from '../services/firebaseTelemetry';
+import { recordCrashlyticsError } from '../services/firebaseTelemetry';
 import { colors as defaultColors, radii, shadows as defaultShadows, spacing, typography } from '../theme/tokens';
 import { Difficulty, GameMode, GameState, Player, Score } from '../types';
 import { getAiMove } from '../utils/ai';

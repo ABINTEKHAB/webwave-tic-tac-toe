@@ -64,7 +64,7 @@ const App = () => {
     setSettings(updated);
     try {
       await AsyncStorage.setItem('@webwave_tic_tac_toe:settings', JSON.stringify(updated));
-    } catch {}
+    } catch { }
   };
 
   const refreshAdsState = async (gatherConsent = false) => {
@@ -218,9 +218,9 @@ const App = () => {
         {splashVisible ? (
           <SplashPortal onFinish={() => setSplashVisible(false)} />
         ) : currentScreen === 'GAME_SELECT' ? (
-          <GameSelectionScreen 
-            onSelectGame={handleSelectGame} 
-            adsReady={adsReady && !settings.isAdFree} 
+          <GameSelectionScreen
+            onSelectGame={handleSelectGame}
+            adsReady={adsReady && !settings.isAdFree}
             onOpenSettings={() => {
               setSettingsVisible(true);
               playSound('tap');
@@ -280,7 +280,7 @@ const App = () => {
             handleUpdateSetting('vibrationEnabled', val);
             playSound('tap');
           }}
-          onResetMatch={() => {}}
+          onResetMatch={() => { }}
           onOpenPrivacyPolicy={handleOpenPrivacyPolicy}
           onOpenPrivacyOptions={handleOpenPrivacyOptions}
           shouldRenderAds={shouldRenderAds}

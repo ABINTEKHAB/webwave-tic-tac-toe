@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions, Image } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, spacing, typography } from '../theme/tokens';
 
@@ -89,20 +89,25 @@ const SplashPortal = ({ onFinish }: SplashPortalProps) => {
     // 4. Loading Bar progress
     Animated.timing(loadingProgress, {
       toValue: 1,
-      duration: 2500,
+      duration: 6000, // Increased to 8000 (8 seconds) so the animation is clearly visible
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
-    }).start(() => {
-      // 5. Fade-out splash screen on complete
-      Animated.timing(splashOpacity, {
-        toValue: 0,
-        duration: 350,
-        easing: Easing.inOut(Easing.quad),
-        useNativeDriver: true,
-      }).start(() => {
-        onFinish();
+    })
+
+
+      /* TEMP: Commented out to prevent navigating away */
+      .start(() => {
+        // 5. Fade-out splash screen on complete
+        Animated.timing(splashOpacity, {
+          toValue: 0,
+          duration: 350,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }).start(() => {
+          onFinish();
+        });
       });
-    });
+
   }, [logoScale, vortexRotateOuter, vortexRotateInner, loadingProgress, splashOpacity, particleAnims, onFinish]);
 
   // Interpolate rotations
@@ -149,42 +154,52 @@ const SplashPortal = ({ onFinish }: SplashPortalProps) => {
         })}
       </View>
 
-      {/* Swirling Nebula Portal Logo */}
-      <Animated.View style={[styles.portalWrapper, { transform: [{ scale: logoScale }] }]}>
-        <Animated.View
-          style={[
-            styles.portalRing,
-            styles.portalRingOuter,
-            { transform: [{ rotate: rotateOuterStr }] },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.portalRing,
-            styles.portalRingInner,
-            { transform: [{ rotate: rotateInnerStr }] },
-          ]}
-        />
-        {/* Core Glow */}
-        <View style={styles.portalCore} />
-      </Animated.View>
+      <View style={styles.centerContainer}>
+        {/* Swirling Nebula Portal Logo */}
+        <Animated.View style={[styles.portalWrapper, { transform: [{ scale: logoScale }] }]}>
+          <Animated.View
+            style={[
+              styles.portalRing,
+              styles.portalRingOuter,
+              { transform: [{ rotate: rotateOuterStr }] },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.portalRing,
+              styles.portalRingInner,
+              { transform: [{ rotate: rotateInnerStr }] },
+            ]}
+          />
+          {/* Core Glow */}
+          <View style={styles.appIconContainer}>
+            <Image
+              source={require('../playstore-icon.png')}
+              style={styles.appIconImage}
+              resizeMode="cover"
+            />
+          </View>
+        </Animated.View>
 
-      {/* Title block */}
-      <View style={styles.titleContainer}>
-        <Text style={styles.titleText}>WEBWAVE GLOBAL</Text>
-        <Text style={styles.subtitleText}>GAME PORTAL</Text>
-      </View>
-
-      {/* horizontal progress loader */}
-      <View style={styles.loaderContainer}>
-        <View style={styles.loaderTrack}>
-          <Animated.View style={[styles.loaderBar, { width: progressWidth }]} />
+        {/* Title block */}
+        <View style={styles.titleContainer}>
+          <Text style={styles.titleText}>WEBWAVE GLOBAL</Text>
+          <Text style={styles.subtitleText}>GAME PORTAL</Text>
         </View>
-        <Text style={styles.loadingStatusText}>Loading Webwave Games...</Text>
       </View>
 
-      {/* Footer Info */}
-      <Text style={styles.footerText}>© 2026 Webwave Global</Text>
+      <View style={styles.bottomContainer}>
+        {/* horizontal progress loader */}
+        <View style={styles.loaderContainer}>
+          <View style={styles.loaderTrack}>
+            <Animated.View style={[styles.loaderBar, { width: progressWidth }]} />
+          </View>
+          <Text style={styles.loadingStatusText}>Loading Webwave Games...</Text>
+        </View>
+
+        {/* Footer Info */}
+        <Text style={styles.footerText}>© 2026 Webwave Global</Text>
+      </View>
     </Animated.View>
   );
 };
@@ -193,9 +208,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#05050a', // space-deep-void
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 50,
+  },
+  bottomContainer: {
+    alignItems: 'center',
+    paddingBottom: 50,
   },
   star: {
     position: 'absolute',
@@ -208,50 +229,51 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   portalWrapper: {
-    width: 140,
-    height: 140,
+    width: 240,
+    height: 240,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 100,
   },
   portalRing: {
     position: 'absolute',
-    borderRadius: 999,
-    borderWidth: 2.2,
+    borderWidth: 3,
     borderStyle: 'dashed',
   },
   portalRingOuter: {
-    width: 120,
-    height: 120,
+    width: 220,
+    height: 220,
+    borderRadius: 56,
     borderColor: '#ff75c3', // nova-magenta
     shadowColor: '#ff75c3',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.84,
-    shadowRadius: 10,
+    shadowRadius: 15,
   },
   portalRingInner: {
-    width: 86,
-    height: 86,
+    width: 160,
+    height: 160,
+    borderRadius: 40,
     borderColor: '#00f5ff', // nebula-cyan
     shadowColor: '#00f5ff',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.84,
-    shadowRadius: 8,
+    shadowRadius: 12,
   },
-  portalCore: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    shadowColor: '#00f5ff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 15,
-    elevation: 10,
+  appIconContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  appIconImage: {
+    width: '100%',
+    height: '100%',
   },
   titleContainer: {
     alignItems: 'center',
-    marginVertical: 20,
+    marginTop: 40,
   },
   titleText: {
     fontFamily: typography.family.black,

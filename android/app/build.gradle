@@ -1,3 +1,5 @@
+import java.nio.file.Files
+
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
@@ -139,6 +141,34 @@ android {
         }
     }
 }
+
+// Copy sound assets to raw resources directory
+task copySoundsToRaw {
+    doFirst {
+        def soundsDir = file("../../src/assets/sounds")
+        def rawDir = file("src/main/res/raw")
+        
+        println "Copying sounds from: " + soundsDir.absolutePath
+        println "To: " + rawDir.absolutePath
+        
+        if (soundsDir.exists()) {
+            rawDir.mkdirs()
+            soundsDir.eachFile { file ->
+                if (file.isFile() && (file.name.endsWith('.wav') || file.name.endsWith('.mp3'))) {
+                    println "Copying sound: " + file.name
+                    def target = new File(rawDir, file.name)
+                    file.bytes = file.bytes
+                    Files.copy(file.toPath(), target.toPath(), 
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                }
+            }
+        } else {
+            println "Sounds directory not found: " + soundsDir.absolutePath
+        }
+    }
+}
+
+preBuild.dependsOn copySoundsToRaw
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin

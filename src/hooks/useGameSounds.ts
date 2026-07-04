@@ -23,7 +23,7 @@ const MOVE_SOUND = require('../assets/sounds/move.wav');
 const OMOVE_SOUND = require('../assets/sounds/omove.wav');
 const XMOVE_SOUND = require('../assets/sounds/xmove.wav');
 const WIN_SOUND = require('../assets/sounds/win.wav');
-const OWIN_SOUND = require('../assets/sounds/Owin.mp3');
+const OWIN_SOUND = require('../assets/sounds/owin.mp3');
 const XWIN_SOUND = require('../assets/sounds/xwin.wav');
 const GAMEOVER_SOUND = require('../assets/sounds/draw_gameover.mp3');
 const TING_SOUND = require('../assets/sounds/ting.wav');
@@ -34,17 +34,27 @@ const LUDO_EAT_SOUND = require('../assets/sounds/ludo_eat.wav');
 const LUDO_PLACE_SOUND = require('../assets/sounds/ludo_place.wav');
 const TAP_SOUND = require('../assets/sounds/touch.wav');
 
-const resolveSoundPath = (soundAsset: number): string | null => {
-  const asset = Image.resolveAssetSource(soundAsset);
-  if (!asset?.uri) {
-    return null;
+const resolveSoundPath = (soundAsset: number, soundName?: string): string | null => {
+  try {
+    const asset = Image.resolveAssetSource(soundAsset);
+    if (asset?.uri) {
+      if (Platform.OS === 'android' && asset.uri.startsWith('file://')) {
+        return asset.uri.replace('file://', '');
+      }
+      return asset.uri;
+    }
+  } catch (error) {
+    warn(`Failed to resolve asset source for sound ${soundName || ''}:`, error);
   }
 
-  if (Platform.OS === 'android' && asset.uri.startsWith('file://')) {
-    return asset.uri.replace('file://', '');
+  // Fallback for release builds where Image.resolveAssetSource might not work
+  // Try raw resource ID approach for Android
+  if (Platform.OS === 'android' && soundName) {
+    const resourcePath = `raw/${soundName}`;
+    return resourcePath;
   }
 
-  return asset.uri;
+  return null;
 };
 
 const createSound = (soundAsset: number, name?: string): Sound | null => {
