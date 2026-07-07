@@ -1,98 +1,91 @@
-# Play Store Listing Pack (Webwave Tic Tac Toe)
+# Play Store Listing Pack (Webwave Game Portal)
 
-## App Name
+## App Name (ASO Optimized - Max 30 chars)
 
-`Webwave Tic Tac Toe`
+`Webwave: Ludo, Sort & Tic Tac`
 
 Alternative names (if primary is unavailable):
-
-- `Webwave Neon Tic Tac Toe`
-- `Tic Tac Toe Neon - Webwave`
+- `Ludo, Water Sort & XO Games`
+- `Webwave Games: Ludo & Puzzles`
+- `Tic Tac Toe, Ludo & Sort Puzzle`
 
 ## Short Description (80 chars max)
 
-Neon Tic Tac Toe with smart AI, smooth gameplay, and offline play.
+Play offline Ludo, Water Sort puzzle & Neon Tic Tac Toe in one casual game hub!
 
 ## Full Description (ready to paste)
 
-Play a clean, fast, and premium-style Tic Tac Toe experience with glowing neon visuals.
+Welcome to the ultimate casual game collection! Webwave Games brings you three of the most highly addictive and classic games in one single app. Enjoy a premium, glowing neon interface and smooth gameplay without the need for an internet connection. 
 
-Webwave Tic Tac Toe is designed for quick matches, smooth controls, and a polished game feel across Android devices.
+Whether you want to challenge your friends in a classic board game or train your brain with a relaxing color puzzle, this all-in-one game portal has something for everyone.
 
-### Game Modes
+🎮 **GAMES INCLUDED:**
 
-- Player vs AI
-- Player vs Player (local)
+🎲 **LUDO BOARD GAME**
+The classic dice board game you know and love! 
+- Play against smart AI or enjoy local multiplayer with up to 4 players.
+- Beautiful board design with exciting blast animations when you capture an opponent.
+- Perfect for family time and playing with friends!
 
-### AI Difficulty Levels
+🧪 **WATER SORT PUZZLE**
+A relaxing and challenging color sorting game to test your logic!
+- Pour colored water into the tubes until all colors match.
+- Hundreds of logic puzzles from easy to hard.
+- Great brain-training exercise that helps you relax and de-stress.
 
-- Easy
-- Medium
-- Hard
+❌⭕ **NEON TIC TAC TOE (XO)**
+The timeless Noughts and Crosses puzzle with a modern glowing twist.
+- Play against a smart AI with Easy, Medium, and Hard difficulty levels.
+- 2-Player local mode for quick matches.
+- Clean neon UI and satisfying sound effects.
 
-### Features
+✨ **KEY FEATURES**
+• **Play Anytime, Anywhere:** 100% offline gameplay. No WiFi or internet required!
+• **Lightweight & Fast:** Three amazing games packed into one small, fast-performing app.
+• **Customizable Experience:** Toggle sound, haptic vibrations, and adjust game settings easily.
+• **Responsive Design:** Optimized for both phones and tablets with smooth controls.
 
-- Neon game board and premium UI design
-- Smooth gameplay with responsive controls
-- Sound effects on/off
-- Vibration on/off
-- Replay and match reset controls
-- Offline gameplay support
-- Lightweight casual game for quick sessions
+Download **Webwave Games** now to enjoy Ludo, Water Sort, and Tic Tac Toe on your Android device. Train your brain, challenge your friends, and have endless fun!
 
-### Why You'll Like It
-
-- Fast rounds, no complicated setup
-- Clean and readable interface
-- Great for passing time and challenging friends
-- Smart AI for different skill levels
-
-This app contains ads (AdMob) to support free gameplay.
+---
+*(This app contains non-intrusive ads to support free gameplay. An active internet connection is only required if you choose to load ads).*
 
 ## Release Notes (Internal Testing / Production)
 
-### v1.1.0
+### v2.0.0
+- **Major Update!** Added two brand new full games: Ludo and Water Sort Puzzle.
+- Renamed app to Webwave Game Portal.
+- Added beautiful particle blast animations and sound effects.
+- Added local 4-player support for Ludo.
+- Improved Neon Tic Tac Toe AI.
+- Updated settings UI and privacy controls.
 
-- Upgraded app to latest React Native setup
-- Improved responsive game screen layout for more devices
-- Added settings modal with sound and vibration controls
-- Added AdMob ads support and consent flow
-- Integrated Firebase Analytics and Crashlytics
-- UI polish and production readiness fixes
+## ASO Keyword Strategy & Ideas (Do not paste in Play Store)
 
-## Keyword Ideas (for your own planning, not a Play field)
+To rank higher on the Play Store, ensure these keywords are naturally present in your title and descriptions. (Already integrated above).
 
-- tic tac toe
-- neon tic tac toe
-- xo game
-- x and o game
-- offline tic tac toe
-- ai tic tac toe
-- two player tic tac toe
-- casual board game
+**Primary Target Keywords:**
+- Ludo game offline, play ludo with friends, dice board game
+- Water sort puzzle, color sort game, liquid puzzle, color pouring
+- Tic tac toe 2 player, xo offline game, noughts and crosses
+- All in one games offline, casual mini games, brain puzzle games
 
 ## Store Assets Checklist
 
-- App icon: `512 x 512` PNG
-- Feature graphic: `1024 x 500` PNG/JPG
-- Phone screenshots: at least `2` (recommended `1080 x 1920`)
-- Recommended screenshots: `4-8`
-- Optional tablet screenshots (if layout looks good on tablets)
+- **App icon:** `512 x 512` PNG (Make sure it highlights that it's a multi-game app, maybe a split icon showing Ludo dice, XO, and a water tube).
+- **Feature graphic:** `1024 x 500` PNG/JPG.
+- **Phone screenshots:** `4-8` screenshots (`1080 x 1920`). Show at least 2 screenshots of Ludo, 2 of Water Sort, and 2 of Tic Tac Toe.
 
 ## Suggested Screenshot Captions
 
-1. `Play against AI in Easy, Medium, and Hard modes`
-2. `Premium neon game board with smooth controls`
-3. `Toggle sound and vibration from in-game settings`
-4. `Play local 2-player matches on one device`
+1. `3 Classic Games in 1 App!` (Showing game selection screen)
+2. `Classic Ludo Board Game` (Showing Ludo 4-player setup)
+3. `Relaxing Water Sort Puzzle` (Showing a mid-level sort puzzle)
+4. `Neon Tic Tac Toe vs AI` (Showing XO board)
+5. `Play 100% Offline, No WiFi needed!`
+6. `Smart AI & Multi-player Modes`
 
 ## Contact Details (Play Console)
 
 - Contact email: `webwaveglobal@gmail.com`
-- Privacy policy URL: (paste your hosted HTTPS URL here)
-
-## Notes Before Publishing
-
-- Ensure screenshots show the final production UI (no debug overlays).
-- Ensure no internal test buttons are visible.
-- Use release build screenshots if possible.
+- Privacy policy URL: *(Make sure your privacy policy mentions AdMob and Firebase Analytics).*

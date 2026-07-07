@@ -1906,10 +1906,10 @@ interface WaterSortScreenProps {
       soundEnabled: boolean;
       vibrationEnabled: boolean;
 }
-type LiquidColor = 'cyan' | 'pink' | 'warning' | 'accent' | 'purple' | 'orange' | 'yellow';
+type LiquidColor = 'cyan' | 'pink' | 'warning' | 'accent' | 'purple' | 'orange' | 'yellow' | 'red' | 'teal' | 'white';
 const STORAGE_LEVEL_KEY = '@webwave_tic_tac_toe:water_sort_level';
-// 7 distinct neon colors
-const ALL_COLORS: LiquidColor[] = ['cyan', 'pink', 'warning', 'accent', 'purple', 'orange', 'yellow'];
+// 10 distinct neon colors
+const ALL_COLORS: LiquidColor[] = ['cyan', 'pink', 'warning', 'accent', 'purple', 'orange', 'yellow', 'red', 'teal', 'white'];
 const HANDCRAFTED_LEVELS: LiquidColor[][][] = [
       // Level 1: 3 filled, 2 empty
       [
@@ -1986,9 +1986,12 @@ const getWaterSortLevel = (levelIdx: number): LiquidColor[][] => {
       }
       const rng = new SeededRandom(levelIdx * 1234 + 567);
       let colorCount = 4;
-      if (levelIdx >= 40) colorCount = 7;
-      else if (levelIdx >= 25) colorCount = 6;
-      else if (levelIdx >= 10) colorCount = 5;
+      if (levelIdx >= 40) colorCount = 10;
+      else if (levelIdx >= 30) colorCount = 9;
+      else if (levelIdx >= 20) colorCount = 8;
+      else if (levelIdx >= 12) colorCount = 7;
+      else if (levelIdx >= 7) colorCount = 6;
+      else if (levelIdx >= 3) colorCount = 5;
       const selectedColors = ALL_COLORS.slice(0, colorCount);
       const segments: LiquidColor[] = [];
       selectedColors.forEach(c => {
@@ -2478,6 +2481,9 @@ const WaterSortScreen = ({
                         case 'purple': return '#4a2c5f';
                         case 'orange': return '#a65d21';
                         case 'yellow': return '#9a8e2a';
+                        case 'red': return '#8b3a3a';
+                        case 'teal': return '#3d5e5e';
+                        case 'white': return '#d1d6d6';
                   }
             }
             switch (colorName) {
@@ -2488,6 +2494,9 @@ const WaterSortScreen = ({
                   case 'purple': return '#b026ff'; // Purple
                   case 'orange': return '#ff5e00'; // Orange
                   case 'yellow': return '#ffd215'; // Golden Yellow
+                  case 'red': return '#ff073a'; // Neon Red
+                  case 'teal': return '#00ffcc'; // Neon Teal
+                  case 'white': return '#ffffff'; // Pure White
             }
       };
       // Physical vial tilt animation style

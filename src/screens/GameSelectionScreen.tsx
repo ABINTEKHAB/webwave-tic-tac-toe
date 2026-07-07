@@ -1,8 +1,11 @@
 import React, { useMemo } from 'react';
-import { ImageBackground, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ImageBackground, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View, useWindowDimensions, Image } from 'react-native';
 import Icon from '@react-native-vector-icons/ionicons';
 
 const BACKGROUND_IMG = require('../assets/images/bgr_1.png');
+const TIC_TAC_TOE_IMG = require('../assets/images/Tic_Tac_Toe_app_icon_202607051606.jpeg');
+const WATER_SORT_IMG = require('../assets/images/Water_Sort_puzzle_game_icon_202607051605.jpeg');
+const LUDO_IMG = require('../assets/images/Ludo_game_icon_button_2K_202607051606.jpeg');
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, spacing, typography } from '../theme/tokens';
@@ -96,9 +99,7 @@ const GameSelectionScreen = ({ onSelectGame, adsReady, onOpenSettings, soundEnab
                 android_disableSound={true}
               >
                 <View style={styles.cardContent}>
-                  <View style={[styles.iconOrb, styles.orbCyan]}>
-                    <Icon name="grid-outline" size={26} color={colors.cyanPrimary} />
-                  </View>
+                  <Image source={TIC_TAC_TOE_IMG} style={styles.gameImage} />
                   <View style={styles.textWrap}>
                     <Text style={styles.cardTitleCyan}>TIC TAC TOE</Text>
                     <Text style={styles.cardDesc}>Place X and O marks on a 3x3 grid to win the match.</Text>
@@ -122,9 +123,7 @@ const GameSelectionScreen = ({ onSelectGame, adsReady, onOpenSettings, soundEnab
                 android_disableSound={true}
               >
                 <View style={styles.cardContent}>
-                  <View style={[styles.iconOrb, styles.orbPink]}>
-                    <Icon name="flask-outline" size={26} color={colors.pinkPrimary} />
-                  </View>
+                  <Image source={WATER_SORT_IMG} style={styles.gameImage} />
                   <View style={styles.textWrap}>
                     <Text style={styles.cardTitlePink}>WATER SORT</Text>
                     <Text style={styles.cardDesc}>Sort colored water elements inside vials to clear the screen.</Text>
@@ -148,9 +147,7 @@ const GameSelectionScreen = ({ onSelectGame, adsReady, onOpenSettings, soundEnab
                 android_disableSound={true}
               >
                 <View style={styles.cardContent}>
-                  <View style={[styles.iconOrb, styles.orbWarning]}>
-                    <Icon name="disc-outline" size={26} color={colors.warning} />
-                  </View>
+                  <Image source={LUDO_IMG} style={styles.gameImage} />
                   <View style={styles.textWrap}>
                     <Text style={styles.cardTitleWarning}>LUDO</Text>
                     <Text style={styles.cardDesc}>Roll the dice and race your tokens around the 15x15 board.</Text>
@@ -283,6 +280,7 @@ const getStyles = (colors: any, shadows: any) =>
       borderRadius: radii.xxl,
       borderWidth: 1.8,
       padding: spacing.md,
+      marginHorizontal: spacing.xs,
       overflow: 'hidden',
     },
     cardCyan: {
@@ -309,6 +307,7 @@ const getStyles = (colors: any, shadows: any) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+
     },
     iconOrb: {
       width: 52,
@@ -317,6 +316,13 @@ const getStyles = (colors: any, shadows: any) =>
       borderWidth: 1.2,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    gameImage: {
+      width: 72,
+      height: 72,
+      borderRadius: 14,
+      borderWidth: 1.5,
+      borderColor: 'rgba(255,255,255,0.1)',
     },
     orbCyan: {
       borderColor: colors.cyanBorder,

@@ -13,11 +13,32 @@ import {
   Text,
   View,
   useWindowDimensions,
+  Easing,
 } from 'react-native';
 import Icon from '@react-native-vector-icons/ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const BACKGROUND_IMG = require('../assets/images/bgr_2.png');
+const PVAI_IMG = require('../assets/images/Ludo_VS_AI.jpeg');
+const PVP_IMG = require('../assets/images/PvAI.jpeg');
+const PLAYERS_2_IMG = require('../assets/images/2players.jpeg');
+const PLAYERS_3_IMG = require('../assets/images/3players.jpeg');
+const PLAYERS_4_IMG = require('../assets/images/4players.jpeg');
+const TOKEN_RED_IMG = require('../assets/images/Red_Ludo_token.jpeg');
+const TOKEN_GREEN_IMG = require('../assets/images/green_Ludo.jpeg');
+const TOKEN_YELLOW_IMG = require('../assets/images/yellow_Ludo_token.jpeg');
+const TOKEN_BLUE_IMG = require('../assets/images/blue.jpeg');
+
+const getTokenImage = (colorKey: string) => {
+  switch (colorKey) {
+    case 'RED': return TOKEN_RED_IMG;
+    case 'GREEN': return TOKEN_GREEN_IMG;
+    case 'YELLOW': return TOKEN_YELLOW_IMG;
+    case 'BLUE': return TOKEN_BLUE_IMG;
+    default: return TOKEN_RED_IMG;
+  }
+};
+
 import AdBanner from '../components/AdBanner';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, spacing, typography } from '../theme/tokens';
@@ -165,10 +186,10 @@ const LudoScreen = ({
   const { colors, shadows } = theme;
 
   const contentWidth = getContentWidth(width, 16, 560);
-  const rawBoardSize = Math.min(contentWidth - 24, height * 0.44);
-  const boardSize = Math.floor(rawBoardSize / 15) * 15;
-  const boardPadding = boardSize * (57 / 1029);
-  const cellSize = (boardSize - 2 * boardPadding) / 15;
+  const rawBoardSize = Math.min(contentWidth - 16, height * 0.52);
+  const boardSize = Math.floor(rawBoardSize / 15) * 16;
+  const boardPadding = 0;
+  const cellSize = boardSize / 15;
 
   const { playSound } = useGameSounds(soundEnabled);
   const { showInterstitial } = useAdMob(adsReady, false);
@@ -216,6 +237,8 @@ const LudoScreen = ({
 
   // Pulse animation for active tokens
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const ringRotateAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -223,7 +246,16 @@ const LudoScreen = ({
         Animated.timing(pulseAnim, { toValue: 0.94, duration: 600, useNativeDriver: true }),
       ])
     ).start();
-  }, [pulseAnim]);
+
+    Animated.loop(
+      Animated.timing(ringRotateAnim, {
+        toValue: 1,
+        duration: 3000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, [pulseAnim, ringRotateAnim]);
 
   // Blast animation states for victory/capture on board
   const [blastVisible, setBlastVisible] = useState(false);
@@ -535,6 +567,7 @@ const LudoScreen = ({
       const isExitingYard = targetToken.status === 'YARD';
       let nextStep = 0;
       let nextStatus: TokenState['status'] = 'PATH';
+      let extraTurnEarned = false;
 
       if (isExitingYard) {
         nextStep = 0;
@@ -579,6 +612,7 @@ const LudoScreen = ({
 
       if (nextStatus === 'FINISHED') {
         playSound('win');
+        extraTurnEarned = true;
         triggerBlast(7.5, 7.5, ['🎉', '🏆', '⭐', '✨', '🔥', '👑', '🥳', '💥'], ludoColors[getPlayerColorName(player)]);
         await new Promise<void>(resolve => setTimeout(() => resolve(), 850));
       }
@@ -656,6 +690,7 @@ const LudoScreen = ({
                 )
               );
               captured = true;
+              extraTurnEarned = true;
               break;
             }
           }
@@ -704,7 +739,7 @@ const LudoScreen = ({
       }
 
       // Alternating turns (Roll 6 gets extra turn)
-      if (roll === 6) {
+      if (roll === 6 || extraTurnEarned) {
         setDiceValue(null);
       } else {
         advanceTurn();
@@ -1048,6 +1083,37 @@ const LudoScreen = ({
     );
   };
 
+  // Render empty yard placeholders for tokens so it doesn't look empty when tokens move
+  const renderYardPlaceholders = () => {
+    return activePlayers.map(p => {
+      const rawColor = getPlayerColorName(p);
+      const mappedColor = mapColorCoord(rawColor);
+      const hexColor = ludoColors[rawColor];
+
+      return LUDO_YARDS[mappedColor].map((coord, idx) => {
+        const baseLeft = boardPadding + coord.x * cellSize + cellSize * 0.115;
+        const baseTop = boardPadding + coord.y * cellSize + cellSize * 0.115;
+        return (
+          <View
+            key={`placeholder-${p}-${idx}`}
+            style={{
+              position: 'absolute',
+              width: cellSize * 0.70,
+              height: cellSize * 0.70,
+              borderRadius: (cellSize * 0.70) / 2,
+              left: baseLeft,
+              top: baseTop,
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              borderWidth: 1.5,
+              borderColor: hexColor,
+              zIndex: 1,
+            }}
+          />
+        );
+      });
+    });
+  };
+
   // Render tokens for a given player
   const renderPlayerTokens = (p: LudoPlayer, tokensList: TokenState[], colorKey: LudoColor) => {
     return tokensList.map(token => {
@@ -1074,17 +1140,38 @@ const LudoScreen = ({
             styles.token,
             {
               backgroundColor: getThemeTokenColor(colorKey),
-              width: cellSize * 0.77,
-              height: cellSize * 0.77,
-              borderRadius: (cellSize * 0.77) / 2,
+              width: cellSize * 0.86,
+              height: cellSize * 0.86,
+              borderRadius: (cellSize * 0.86) / 2,
               left: baseLeft + offsetLeft,
               top: baseTop + offsetTop,
               zIndex: eligible ? 20 : (token.status === 'YARD' ? 1 : 2),
               transform: [{ scale: eligible ? Animated.multiply(scale, pulseAnim) : scale }],
             },
             eligible && styles.tokenActiveGlow,
+            eligible && { shadowColor: ludoColors[getPlayerColorName(p)] }
           ]}
         >
+          <Animated.View
+            style={{
+              position: 'absolute',
+              width: '125%',
+              height: '125%',
+              borderRadius: 999,
+              borderWidth: 2,
+              borderColor: ludoColors[getPlayerColorName(p)],
+              borderStyle: 'dashed',
+              opacity: eligible ? 1 : 0,
+              transform: [
+                {
+                  rotate: ringRotateAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg'],
+                  }),
+                },
+              ],
+            }}
+          />
           <Pressable
             onPress={() => eligible && makeMove(p, token.id, diceValue!)}
             disabled={!eligible}
@@ -1097,10 +1184,15 @@ const LudoScreen = ({
             }}
             android_disableSound={true}
           >
-            <Text style={styles.tokenLabel}>
-              {colorKey.charAt(0)}
-              {token.id + 1}
-            </Text>
+            <Image
+              source={getTokenImage(colorKey)}
+              style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: (cellSize * 0.77) / 2,
+              }}
+              resizeMode="cover"
+            />
           </Pressable>
         </Animated.View>
       );
@@ -1193,9 +1285,7 @@ const LudoScreen = ({
                     style={({ pressed }) => [styles.modeOptionBtn, pressed && styles.btnPressed]}
                     android_disableSound={true}
                   >
-                    <View style={[styles.optionOrb, { borderColor: colors.pinkPrimary }]}>
-                      <Icon name="hardware-chip-outline" size={24} color={colors.pinkPrimary} />
-                    </View>
+                    <Image source={PVAI_IMG} style={styles.modeImage} />
                     <View style={styles.optionTextWrap}>
                       <Text style={[styles.optionTitle, { color: colors.pinkPrimary }]}>VS BOT (AI)</Text>
                       <Text style={styles.optionDesc}>Play against smart bots. Single player.</Text>
@@ -1212,9 +1302,7 @@ const LudoScreen = ({
                     style={({ pressed }) => [styles.modeOptionBtn, { marginTop: 18 }, pressed && styles.btnPressed]}
                     android_disableSound={true}
                   >
-                    <View style={[styles.optionOrb, { borderColor: colors.cyanPrimary }]}>
-                      <Icon name="people-outline" size={24} color={colors.cyanPrimary} />
-                    </View>
+                    <Image source={PVP_IMG} style={styles.modeImage} />
                     <View style={styles.optionTextWrap}>
                       <Text style={[styles.optionTitle, { color: colors.cyanPrimary }]}>LOCAL P2P</Text>
                       <Text style={styles.optionDesc}>Play with friends on the same screen.</Text>
@@ -1270,6 +1358,7 @@ const LudoScreen = ({
                   <View style={styles.countSelectionRow}>
                     {([2, 3, 4] as const).map(countOpt => {
                       const isSelected = playerCount === countOpt;
+                      const countImg = countOpt === 2 ? PLAYERS_2_IMG : countOpt === 3 ? PLAYERS_3_IMG : PLAYERS_4_IMG;
                       return (
                         <Pressable
                           key={`count-${countOpt}`}
@@ -1279,16 +1368,21 @@ const LudoScreen = ({
                           }}
                           style={[
                             styles.countTab,
+                            { padding: 0, overflow: 'hidden' },
                             isSelected && {
                               borderColor: colors.cyanPrimary,
                               backgroundColor: 'rgba(0, 245, 255, 0.08)',
+                              borderWidth: 2,
                             },
                           ]}
                           android_disableSound={true}
                         >
-                          <Text style={[styles.countTabText, isSelected && { color: colors.cyanPrimary }]}>
-                            {countOpt} Players
-                          </Text>
+                          <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                            <Image source={countImg} style={{ width: '100%', height: '100%', borderRadius: 8 }} resizeMode="cover" />
+                          </View>
+                          {isSelected && (
+                            <View style={{ position: 'absolute', backgroundColor: 'rgba(0,245,255,0.1)', width: '100%', height: '100%' }} />
+                          )}
                         </Pressable>
                       );
                     })}
@@ -1309,12 +1403,19 @@ const LudoScreen = ({
                           }}
                           style={[
                             styles.colorOrb,
-                            { backgroundColor: optColor },
-                            isSelected && [styles.colorOrbActive, { borderColor: colors.textPrimary }],
+                            { padding: 0, overflow: 'hidden' },
+                            isSelected && [styles.colorOrbActive, { borderColor: colors.textPrimary, borderWidth: 2 }],
                           ]}
                           android_disableSound={true}
                         >
-                          {isSelected && <Icon name="checkmark" size={12} color="#FFF" />}
+                          <View style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
+                            <Image source={getTokenImage(colorOpt)} style={{ width: '100%', height: '100%', borderRadius: 19 }} resizeMode="cover" />
+                          </View>
+                          {isSelected && (
+                            <View style={{ position: 'absolute', backgroundColor: 'rgba(0,0,0,0.4)', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                              <Icon name="checkmark" size={16} color="#FFF" />
+                            </View>
+                          )}
                         </Pressable>
                       );
                     })}
@@ -1367,24 +1468,16 @@ const LudoScreen = ({
                     return tokens.filter(t => t.status === 'FINISHED').length;
                   };
 
-                  const c1 = ludoColors[getPlayerColorName('P1')];
-                  const c2 = ludoColors[getPlayerColorName('P2')];
-                  const c3 = ludoColors[getPlayerColorName('P3')];
-                  const c4 = ludoColors[getPlayerColorName('P4')];
-
                   return (
                     <Text style={styles.headerScoreText}>
-                      <Text style={{ color: c2 }}>{getHomedCount('P2')}</Text>
-                      <Text style={{ color: 'rgba(255, 255, 255, 0.4)' }}>:</Text>
-                      <Text style={{ color: c1 }}>{getHomedCount('P1')}</Text>
-                      <Text style={{ color: 'rgba(255, 255, 255, 0.4)' }}>:</Text>
-                      <Text style={{ color: c4 }}>{getHomedCount('P4')}</Text>
-                      {playerCount >= 3 && (
-                        <>
-                          <Text style={{ color: 'rgba(255, 255, 255, 0.4)' }}>:</Text>
-                          <Text style={{ color: c3 }}>{getHomedCount('P3')}</Text>
-                        </>
-                      )}
+                      {activePlayers.map((p, index) => (
+                        <React.Fragment key={`header-score-${p}`}>
+                          {index > 0 && <Text style={{ color: 'rgba(255, 255, 255, 0.4)' }}>:</Text>}
+                          <Text style={{ color: ludoColors[getPlayerColorName(p)] }}>
+                            {getHomedCount(p)}
+                          </Text>
+                        </React.Fragment>
+                      ))}
                     </Text>
                   );
                 })()}
@@ -1408,23 +1501,23 @@ const LudoScreen = ({
             <ScrollView contentContainerStyle={styles.boardScroll} bounces={false}>
               <View style={[styles.boardLayoutContainer, { width: contentWidth }]}>
                 {/* Top Panels Row */}
-                <View style={[styles.cornerPanelsRow, { width: boardSize }]}>
+                <View style={[styles.cornerPanelsRow, { width: contentWidth }]}>
                   {renderPlayerPanelBox(getPlayerByColor('GREEN'), 'top-left')}
                   {renderPlayerPanelBox(getPlayerByColor('YELLOW'), 'top-right')}
                 </View>
 
                 {/* Center: Ludo Board */}
-                <View style={[styles.board, { width: boardSize, height: boardSize }]}>
+                <View style={[styles.board, { width: boardSize, height: boardSize, overflow: 'hidden' }]}>
                   <Image
                     source={require('../assets/images/lodo_map.png')}
-                    style={[
-                      StyleSheet.absoluteFillObject,
-                      {
-                        width: boardSize,
-                        height: boardSize,
-                      },
-                    ]}
-                    resizeMode="stretch"
+                    style={{
+                      position: 'absolute',
+                      width: boardSize * (1029 / 915),
+                      height: boardSize * (1029 / 915),
+                      left: -boardSize * (57 / 915),
+                      top: -boardSize * (57 / 915),
+                    }}
+                    resizeMode="contain"
                   />
                   {/* Base grid borders */}
                   <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
@@ -1454,6 +1547,7 @@ const LudoScreen = ({
                   </View>
 
                   {/* Tokens Rendering */}
+                  {renderYardPlaceholders()}
                   {renderPlayerTokens('P1', p1Tokens, p1Color)}
                   {renderPlayerTokens('P2', p2Tokens, p2Color)}
                   {playerCount >= 3 && renderPlayerTokens('P3', p3Tokens, p3Color)}
@@ -1477,7 +1571,7 @@ const LudoScreen = ({
                 </View>
 
                 {/* Bottom Panels Row */}
-                <View style={[styles.cornerPanelsRow, { width: boardSize }]}>
+                <View style={[styles.cornerPanelsRow, { width: contentWidth }]}>
                   {renderPlayerPanelBox(getPlayerByColor('RED'), 'bottom-left')}
                   {renderPlayerPanelBox(getPlayerByColor('BLUE'), 'bottom-right')}
                 </View>
@@ -1837,6 +1931,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  modeImage: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1.2,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
   optionTextWrap: {
     flex: 1,
     marginLeft: spacing.md,
@@ -1870,7 +1971,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.family.bold,
   },
   lobbySectionTitle: {
-    color: 'rgba(255,255,255,0.3)',
+    color: '#00f5ff',
     fontSize: 9,
     letterSpacing: 1.2,
     marginBottom: spacing.xs,
@@ -2001,7 +2102,7 @@ const styles = StyleSheet.create({
   },
   board: {
     backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: radii.xl,
+    // borderRadius: radii.xl,
     position: 'relative',
     alignSelf: 'center',
     overflow: 'hidden',
@@ -2035,8 +2136,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 15,
-    borderWidth: 2,
-    borderColor: '#ffffff',
+    // borderWidth: 2,
+    // borderColor: '#ffffff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.4,
@@ -2044,13 +2145,10 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   tokenActiveGlow: {
-    borderColor: '#ffffff',
-    shadowColor: '#00f5ff',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 10,
     elevation: 4,
-    transform: [{ scale: 1.15 }],
   },
   tokenLabel: {
     color: '#ffffff',

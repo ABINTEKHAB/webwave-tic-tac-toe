@@ -11,9 +11,12 @@ import {
   Text,
   View,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 
 const BACKGROUND_IMG = require('../assets/images/bgr_1.png');
+const PVAI_IMG = require('../assets/images/PvAI.jpeg');
+const PVP_IMG = require('../assets/images/PVP.jpeg');
 import Icon from '@react-native-vector-icons/ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AdBanner from '../components/AdBanner';
@@ -123,7 +126,7 @@ const LevelSelectionScreen = ({
           setCareerStats(stats);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [showStatsModal]);
 
   useEffect(() => {
@@ -273,9 +276,7 @@ const LevelSelectionScreen = ({
                 android_disableSound={true}
               >
                 <View style={styles.modeCardContent}>
-                  <View style={[styles.modeCardIconOrb, styles.modeCardIconOrbPink]}>
-                    <Icon name="hardware-chip-outline" size={22} color={colors.pinkPrimary} />
-                  </View>
+                  <Image source={PVAI_IMG} style={styles.modeImage} />
                   <View style={styles.modeCardTextWrap}>
                     <Text style={[styles.modeCardTitle, { fontSize: buttonLabelSize, color: colors.pinkPrimary }]}>YOU VS AI</Text>
                     <Text style={styles.modeCardDesc}>Play against our smart computer opponent.</Text>
@@ -300,9 +301,7 @@ const LevelSelectionScreen = ({
                 android_disableSound={true}
               >
                 <View style={styles.modeCardContent}>
-                  <View style={[styles.modeCardIconOrb, styles.modeCardIconOrbCyan]}>
-                    <Icon name="people-outline" size={22} color={colors.cyanPrimary} />
-                  </View>
+                  <Image source={PVP_IMG} style={styles.modeImage} />
                   <View style={styles.modeCardTextWrap}>
                     <Text style={[styles.modeCardTitle, { fontSize: buttonLabelSize }]}>PLAYER VS PLAYER</Text>
                     <Text style={styles.modeCardDesc}>Play with a friend on the same device.</Text>
@@ -335,7 +334,7 @@ const LevelSelectionScreen = ({
                       {Math.round(
                         ((menuStats.pvpWinsX + menuStats.pvpWinsO + menuStats.pvaiWinsUser) /
                           Math.max(1, menuStats.pvpPlayed + menuStats.pvaiPlayed)) *
-                          100
+                        100
                       )}
                       %
                     </Text>
@@ -347,11 +346,11 @@ const LevelSelectionScreen = ({
 
             {/* {adsReady ? <AdBanner compact /> : null} */}
 
-              {adsReady && (
-          <View style={styles.adWrap}>
-            <AdBanner compact />
-          </View>
-        )}
+            {adsReady && (
+              <View style={styles.adWrap}>
+                <AdBanner compact />
+              </View>
+            )}
           </View>
         </ScrollView>
 
@@ -372,7 +371,7 @@ const LevelSelectionScreen = ({
           >
             <Pressable
               style={[styles.modalCard, { width: Math.min(contentWidth, 380) }]}
-              onPress={() => {}}
+              onPress={() => { }}
               android_disableSound={true}
             >
               <View style={styles.modalTopRow}>
@@ -466,7 +465,7 @@ const LevelSelectionScreen = ({
           >
             <Pressable
               style={[styles.modalCard, { width: Math.min(contentWidth, 380), maxHeight: '80%' }]}
-              onPress={() => {}}
+              onPress={() => { }}
               android_disableSound={true}
             >
               <View style={styles.modalTopRow}>
@@ -956,7 +955,7 @@ const getStyles = (colors: any, shadows: any) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      width: '100%',
+      // width: '100%',
     },
     modeCardIconOrb: {
       width: 44,
@@ -965,6 +964,13 @@ const getStyles = (colors: any, shadows: any) =>
       borderWidth: 1.2,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    modeImage: {
+      width: 54,
+      height: 54,
+      borderRadius: 12,
+      borderWidth: 1.2,
+      borderColor: 'rgba(255,255,255,0.1)',
     },
     modeCardIconOrbCyan: {
       borderColor: colors.cyanBorder,
@@ -1040,12 +1046,12 @@ const getStyles = (colors: any, shadows: any) =>
       letterSpacing: 0.5,
       fontFamily: typography.family.bold,
     },
-      adWrap: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: Platform.OS === 'ios' ? 0 : 4,
-  },
+    adWrap: {
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingBottom: Platform.OS === 'ios' ? 0 : 4,
+    },
     modalBackdrop: {
       flex: 1,
       backgroundColor: colors.overlayDark,
